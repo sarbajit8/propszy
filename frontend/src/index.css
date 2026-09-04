@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-slate-50 text-slate-800 font-sans antialiased;
+  }
+  h1, h2, h3, h4 {
+    @apply font-semibold tracking-tight text-slate-900;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-2.5
+           text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500/40 disabled:opacity-50;
+  }
+  .btn-primary { @apply btn bg-brand-600 text-white hover:bg-brand-700; }
+  .btn-outline { @apply btn border border-slate-300 bg-white text-slate-700 hover:bg-slate-50; }
+  .btn-ghost   { @apply btn text-slate-600 hover:bg-slate-100; }
+
+  .input {
+    @apply w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm
+           placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30;
+  }
+  .label { @apply mb-1.5 block text-sm font-medium text-slate-700; }
+  .card  { @apply rounded-xl border border-slate-200 bg-white shadow-card; }
+  .badge { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium; }
+  .container-app { @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8; }
+
+  .article-body { @apply text-[17px] leading-8 text-slate-700; }
+  .article-body > p:first-child, .article-body .lead {
+    @apply mb-6 text-xl font-medium leading-8 text-slate-800;
+  }
+  .article-body p { @apply my-5; }
+  .article-body h2 { @apply mt-10 mb-3 text-2xl font-bold tracking-tight text-slate-900; }
+  .article-body h3 { @apply mt-8 mb-2 text-lg font-semibold text-slate-900; }
+  .article-body ul { @apply my-5 list-disc space-y-2 pl-6 marker:text-brand-400; }
+  .article-body ol { @apply my-5 list-decimal space-y-2 pl-6 marker:text-brand-400; }
+  .article-body a { @apply font-medium text-brand-700 underline decoration-brand-300 underline-offset-2 hover:decoration-brand-600; }
+  .article-body img { @apply my-8 w-full rounded-xl; }
+  .article-body blockquote {
+    @apply my-8 rounded-r-lg border-l-4 border-brand-500 bg-brand-50/60 py-3 pl-5 pr-4 text-lg font-medium not-italic text-slate-700;
+  }
+  .article-body hr { @apply my-10 border-slate-200; }
+}

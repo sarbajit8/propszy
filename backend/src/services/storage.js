@@ -1,0 +1,56 @@
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+const { env } = require('../config/env');
+
+// Pluggable media storage. Local disk is implemented; S3 / Cloudinary are
+// stubbed so the rest of the app codes against one interface.
+
+const uploadRoot = path.resolve(process.cwd(), env.storage.uploadDir);
+
+function ensureDir(dir) {
+  fs.mkdirSync(dir, { recursive: true });
+}
+
+function safeName(original) {
+  const ext = path.extname(original || '').toLowerCase().slice(0, 10);
+  return `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`;
+}
+
+const localDriver = {
+  /** @returns {Promise<{url:string, key:string, size:number}>} */
+  async save(file, folder = 'misc') {
+    const dir = path.join(uploadRoot, folder);
+    ensureDir(dir);
+    const key = `${folder}/${safeName(file.originalname)}`;
+    const dest = path.join(uploadRoot, key);
+    await fs.promises.writeFile(dest, file.buffer);
+    return {
+      url: `${env.storage.publicBaseUrl}/uploads/${key}`,
+      key,
+      size: file.size,
+    };
+  },
+  async remove(key) {
+    if (!key) return;
+    const target = path.join(uploadRoot, key);
+    await fs.promises.unlink(target).catch(() => {});
+  },
+};
+
+const notImplemented = (name) => ({
+  async save() {
+    throw new Error(`${name} storage driver not configured`);
+  },
+  async remove() {},
+});
+
+const drivers = {
+  local: localDriver,
+  s3: notImplemented('s3'),
+  cloudinary: notImplemented('cloudinary'),
+};
+
+const storage = drivers[env.storage.driver] || localDriver;
+
+module.exports = { storage, uploadRoot };

@@ -1,0 +1,754 @@
+// Propszy — Prisma schema (MySQL). Source of truth for the database.
+// Covers all 5 build phases so migrations stay stable.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Identity & access
+// ─────────────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  SUBADMIN
+  AGENT
+  CUSTOMER
+}
+
+enum KycStatus {
+  NOT_SUBMITTED
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id             String    @id @default(cuid())
+  role           Role      @default(CUSTOMER)
+  name           String
+  email          String    @unique
+  phone          String?   @unique
+  passwordHash   String?
+  avatarUrl      String?
+  isActive       Boolean   @default(true)
+  emailVerified  Boolean   @default(false)
+  phoneVerified  Boolean   @default(false)
+
+  // RBAC for sub-admins: array of permission keys, e.g. ["projects.write","leads.read"]
+  permissions    Json?
+
+  // MLM: sponsor chain (self relation)
+  referralCode   String?   @unique
+  sponsorAgentId String?
+  sponsorAgent   User?     @relation("Sponsorship", fields: [sponsorAgentId], references: [id], onDelete: SetNull)
+  downline       User[]    @relation("Sponsorship")
+
+  kycStatus      KycStatus @default(NOT_SUBMITTED)
+  kycProfile     Json?             // legal name, DOB, PAN/Aadhaar no., address, agency
+  kycSubmittedAt DateTime?
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  refreshTokens  RefreshToken[]
+  otps           OtpCode[]
+  projectsCreated Project[]     @relation("ProjectCreatedBy")
+  favorites      Favorite[]
+  leads          Lead[]         @relation("LeadCustomer")
+  leadsAsAgent   Lead[]         @relation("LeadAgent")
+  leadsAssigned  Lead[]         @relation("LeadAssignee")
+  leadNotes      LeadNote[]
+  leadStatusEvents LeadStatusEvent[]
+  followUps      FollowUp[]     @relation("FollowUpAssignee")
+  commissions    Commission[]
+  payouts        Payout[]       @relation("PayoutAgent")
+  payoutsProcessed Payout[]     @relation("PayoutProcessedBy")
+  kycDocuments   KycDocument[]  @relation("KycAgent")
+  kycReviews     KycDocument[]  @relation("KycReviewer")
+  bankDetail     BankDetail?
+  activityLogs   ActivityLog[]
+  notifications  Notification[]
+  posts          Post[]
+
+  @@index([sponsorAgentId])
+  @@index([role])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  userAgent String?
+  ip        String?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+enum OtpPurpose {
+  LOGIN
+  REGISTER
+  RESET_PASSWORD
+  VERIFY_PHONE
+}
+
+model OtpCode {
+  id        String     @id @default(cuid())
+  userId    String?
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel   String     // "email" | "sms"
+  target    String     // email or phone the code was sent to
+  codeHash  String
+  purpose   OtpPurpose
+  attempts  Int        @default(0)
+  expiresAt DateTime
+  consumedAt DateTime?
+  createdAt DateTime   @default(now())
+
+  @@index([target, purpose])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Catalogue: Projects & Properties
+// ─────────────────────────────────────────────────────────────
+
+enum ProjectType {
+  RESIDENTIAL
+  COMMERCIAL
+  PLOT
+  MIXED
+}
+
+enum ProjectStatus {
+  UPCOMING
+  ONGOING
+  READY_TO_MOVE
+}
+
+enum CommissionBaseType {
+  FLAT       // fixed amount per conversion
+  PERCENT    // percent of the recorded sale value / unit price
+}
+
+model Project {
+  id                  String        @id @default(cuid())
+  name                String
+  slug                String        @unique
+  description         String?       @db.Text
+  builder             String?                       // denormalised developer name (kept in sync)
+  developerId         String?
+  developer           Developer?    @relation(fields: [developerId], references: [id], onDelete: SetNull)
+  reraNo              String?
+  type                ProjectType   @default(RESIDENTIAL)
+  status              ProjectStatus @default(UPCOMING)
+  possessionDate      DateTime?                     // "Possession from …"
+  priceMin            Decimal?      @db.Decimal(14, 2)
+  priceMax            Decimal?      @db.Decimal(14, 2)
+
+  // Location
+  lat                 Float?
+  lng                 Float?
+  address             String?
+  city                String?
+  state               String?
+  pincode             String?
+
+  // Media convenience pointers (full gallery in Media[])
+  coverImageUrl       String?
+  masterPlanUrl       String?
+  brochureUrl         String?
+  virtualTourUrl      String?
+  featuredVideoUrl    String?                       // hero / "featured video"
+
+  // SEO
+  metaTitle           String?
+  metaDescription     String?
+
+  // Commission rule (project-wise)
+  commissionBaseType  CommissionBaseType @default(FLAT)
+  commissionBaseValue Decimal            @default(0) @db.Decimal(14, 2)
+
+  isPublished         Boolean       @default(false)
+  isFeatured          Boolean       @default(false)   // homepage curation
+  isTrending          Boolean       @default(false)
+  isBestSeller        Boolean       @default(false)
+  createdById         String?
+  createdBy           User?         @relation("ProjectCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  properties          Property[]
+  media               Media[]
+  amenities           ProjectAmenity[]
+  favorites           Favorite[]
+  leads               Lead[]
+  commissions         Commission[]
+
+  @@index([city])
+  @@index([type])
+  @@index([status])
+  @@index([isPublished])
+  @@index([isFeatured])
+  @@index([developerId])
+}
+
+model Developer {
+  id            String    @id @default(cuid())
+  name          String    @unique
+  slug          String    @unique
+  logoUrl       String?
+  description   String?    @db.Text
+  website       String?
+  foundedYear   Int?                        // "Year estd."
+  totalProjects Int?                        // manual "Projects" figure (else live count)
+  isActive      Boolean   @default(true)
+  isFeatured    Boolean   @default(false)   // show in home "Popular developers"
+  sortOrder     Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  projects    Project[]
+
+  @@index([isActive])
+}
+
+model Amenity {
+  id        String  @id @default(cuid())
+  name      String  @unique
+  icon      String?          // icon key or url
+  category  String?
+  projects  ProjectAmenity[]
+}
+
+model ProjectAmenity {
+  projectId String
+  amenityId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  amenity   Amenity @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, amenityId])
+  @@index([amenityId])
+}
+
+enum PropertyStatus {
+  AVAILABLE
+  SOLD
+  ON_HOLD
+}
+
+model Property {
+  id          String         @id @default(cuid())
+  projectId   String
+  project     Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  unitType    String         // "2BHK", "Plot 1200 sqft", "Shop", ...
+  categoryId  String?
+  category    UnitCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  carpetArea  Float?
+  builtUpArea Float?
+  areaUnit    String         @default("sqft")
+  price       Decimal?       @db.Decimal(14, 2)
+  floor       String?
+  facing      String?
+  bedrooms    Int?
+  bathrooms   Int?
+
+  status      PropertyStatus @default(AVAILABLE)
+
+  // per-property commission override:
+  // { enabled, poolType: 'PERCENT'|'FLAT', poolValue, levels: [{ level, percent }] }
+  // percent = share of the commission pool for that MLM level
+  commissionScheme Json?
+
+  // homepage curation
+  isFeatured   Boolean       @default(false)
+  isTrending   Boolean       @default(false)
+  isBestSeller Boolean       @default(false)
+  soldCount    Int           @default(0)   // manual "best selling" signal
+
+  // Optional location override (else inherits project's)
+  latOverride Float?
+  lngOverride Float?
+  addressOverride String?
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  media       Media[]
+  favorites   Favorite[]
+  leads       Lead[]
+
+  @@index([projectId])
+  @@index([status])
+  @@index([isFeatured])
+  @@index([categoryId])
+}
+
+// Editable Category → Sub-category taxonomy for units (Apartment, Villa, Plot, Shop…)
+model UnitCategory {
+  id        String         @id @default(cuid())
+  name      String
+  slug      String         @unique
+  parentId  String?
+  parent    UnitCategory?  @relation("UnitCatTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  UnitCategory[] @relation("UnitCatTree")
+  icon      String?
+  sortOrder Int            @default(0)
+  isActive  Boolean        @default(true)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  properties Property[]
+
+  @@index([parentId])
+}
+
+enum MediaKind {
+  IMAGE
+  VIDEO
+  FLOOR_PLAN
+  MASTER_PLAN
+  BROCHURE
+  TOUR_360
+}
+
+model Media {
+  id           String    @id @default(cuid())
+  kind         MediaKind @default(IMAGE)
+  url          String
+  thumbnailUrl String?
+  title        String?
+  mimeType     String?
+  sizeBytes    Int?
+  sortOrder    Int       @default(0)
+
+  projectId    String?
+  project      Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  propertyId   String?
+  property     Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime  @default(now())
+
+  @@index([projectId])
+  @@index([propertyId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Customer engagement
+// ─────────────────────────────────────────────────────────────
+
+model Favorite {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId  String?
+  project    Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  propertyId String?
+  property   Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, projectId])
+  @@unique([userId, propertyId])
+  @@index([userId])
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  sessionId  String?          // for guests
+  action     String           // "view_project", "download_brochure", "create_lead", ...
+  entityType String?
+  entityId   String?
+  metadata   Json?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([entityType, entityId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Leads & pipeline
+// ─────────────────────────────────────────────────────────────
+
+enum LeadSource {
+  WEBSITE
+  AGENT
+  ADMIN
+  IMPORT
+}
+
+// Default statuses; workflow is admin-configurable via LeadStatusConfig.
+enum LeadStatus {
+  NEW
+  CONTACTED
+  SITE_VISIT
+  NEGOTIATION
+  CONVERTED
+  DROPPED
+}
+
+model LeadStatusConfig {
+  id           String  @id @default(cuid())
+  key          String  @unique          // matches LeadStatus value or a custom key
+  label        String
+  color        String?
+  sortOrder    Int     @default(0)
+  isConversion Boolean @default(false)
+  isTerminal   Boolean @default(false)
+  isActive     Boolean @default(true)
+}
+
+model Lead {
+  id          String     @id @default(cuid())
+  code        String     @unique          // human-friendly, e.g. LD-2026-000123
+
+  // customer (registered) or guest capture
+  userId      String?
+  user        User?      @relation("LeadCustomer", fields: [userId], references: [id], onDelete: SetNull)
+  guestName   String?
+  guestPhone  String?
+  guestEmail  String?
+  guestAadhaar String?         // customer ID captured by the agent
+  guestPan     String?
+
+  // what the customer is looking for (when not tied to one project yet)
+  purpose        String?       // BUY | RENT | INVEST
+  preferredCity  String?
+  preferredArea  String?
+  requirement    String?       // "2 BHK", "Plot 1200 sqft", "Shop", ...
+  bedroomsWanted Int?
+  budgetMin      Decimal?      @db.Decimal(14, 2)
+  budgetMax      Decimal?      @db.Decimal(14, 2)
+
+  // optional: interested in a specific project / unit
+  projectId   String?
+  project     Project?   @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  propertyId  String?
+  property    Property?  @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+  agentId     String?                     // agent who sourced the lead (drives commission)
+  agent       User?      @relation("LeadAgent", fields: [agentId], references: [id], onDelete: SetNull)
+  assignedToId String?                    // staff handling it
+  assignedTo  User?      @relation("LeadAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  source      LeadSource @default(WEBSITE)
+  status      LeadStatus @default(NEW)
+  statusKey   String     @default("NEW")  // FK-ish to LeadStatusConfig.key
+  message     String?    @db.Text
+
+  saleValue   Decimal?   @db.Decimal(14, 2)   // recorded at conversion; base for PERCENT commission
+  convertedAt DateTime?
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  notes         LeadNote[]
+  statusEvents  LeadStatusEvent[]
+  followUps     FollowUp[]
+  commissions   Commission[]
+
+  @@index([projectId])
+  @@index([agentId])
+  @@index([status])
+  @@index([assignedToId])
+}
+
+model LeadNote {
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([leadId])
+}
+
+model LeadStatusEvent {
+  id          String   @id @default(cuid())
+  leadId      String
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  fromStatus  String?
+  toStatus    String
+  changedById String?
+  changedBy   User?    @relation(fields: [changedById], references: [id], onDelete: SetNull)
+  note        String?
+  createdAt   DateTime @default(now())
+
+  @@index([leadId])
+}
+
+model FollowUp {
+  id           String    @id @default(cuid())
+  leadId       String
+  lead         Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  assignedToId String?
+  assignedTo   User?     @relation("FollowUpAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  dueAt        DateTime
+  done         Boolean   @default(false)
+  note         String?
+  createdAt    DateTime  @default(now())
+
+  @@index([leadId])
+  @@index([dueAt])
+}
+
+// ─────────────────────────────────────────────────────────────
+// MLM & commissions
+// ─────────────────────────────────────────────────────────────
+
+enum RateType {
+  PERCENT
+  FLAT
+}
+
+model MlmLevelConfig {
+  id        String   @id @default(cuid())
+  level     Int      @unique          // 1 = the sourcing agent, 2 = their sponsor, ...
+  rateType  RateType @default(PERCENT)
+  rateValue Decimal  @db.Decimal(10, 4)   // percent (e.g. 5.0) or flat amount
+  label     String?
+  isActive  Boolean  @default(true)
+}
+
+enum CommissionStatus {
+  PENDING
+  APPROVED
+  PAID
+  REVERSED
+}
+
+model Commission {
+  id         String           @id @default(cuid())
+  leadId     String
+  lead       Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  agentId    String
+  agent      User             @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  projectId  String
+  project    Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  level      Int              // MLM level this entry corresponds to
+  baseAmount Decimal          @db.Decimal(14, 2)   // project commission base resolved for this conversion
+  rateType   RateType
+  rateValue  Decimal          @db.Decimal(10, 4)
+  amount     Decimal          @db.Decimal(14, 2)   // computed payout for this agent/level
+
+  status     CommissionStatus @default(PENDING)
+  payoutId   String?
+  payout     Payout?          @relation(fields: [payoutId], references: [id], onDelete: SetNull)
+  note       String?
+
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@unique([leadId, agentId, level])
+  @@index([agentId])
+  @@index([status])
+  @@index([projectId])
+}
+
+enum PayoutStatus {
+  INITIATED
+  PAID
+  FAILED
+}
+
+model Payout {
+  id             String       @id @default(cuid())
+  agentId        String
+  agent          User         @relation("PayoutAgent", fields: [agentId], references: [id], onDelete: Cascade)
+  amount         Decimal      @db.Decimal(14, 2)
+  method         String?      // "bank_transfer", "upi", "razorpay", "manual"
+  reference      String?
+  status         PayoutStatus @default(INITIATED)
+  processedById  String?
+  processedBy    User?        @relation("PayoutProcessedBy", fields: [processedById], references: [id], onDelete: SetNull)
+  note           String?
+  createdAt      DateTime     @default(now())
+  paidAt         DateTime?
+
+  commissions    Commission[]
+
+  @@index([agentId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// KYC
+// ─────────────────────────────────────────────────────────────
+
+enum KycDocType {
+  PAN
+  AADHAAR
+  ID_PROOF
+  ADDRESS_PROOF
+  BANK_PROOF
+  PHOTO
+}
+
+enum KycDocStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model KycDocument {
+  id           String       @id @default(cuid())
+  agentId      String
+  agent        User         @relation("KycAgent", fields: [agentId], references: [id], onDelete: Cascade)
+  docType      KycDocType
+  number       String?
+  fileUrl      String
+  status       KycDocStatus @default(PENDING)
+  reviewedById String?
+  reviewedBy   User?        @relation("KycReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt   DateTime?
+  remarks      String?
+  createdAt    DateTime     @default(now())
+
+  @@index([agentId])
+  @@index([status])
+}
+
+model BankDetail {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountName   String
+  accountNumber String
+  ifsc          String
+  bankName      String?
+  branch        String?
+  upiId         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────────────────────
+// Notifications & CMS
+// ─────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String    // "lead.new", "commission.credited", "kyc.approved", ...
+  title     String
+  body      String?   @db.Text
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt])
+}
+
+model Banner {
+  id        String   @id @default(cuid())
+  title     String?
+  subtitle  String?
+  imageUrl  String
+  linkUrl   String?
+  ctaLabel  String?
+  placement String   @default("home_hero")
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
+}
+
+model Testimonial {
+  id        String   @id @default(cuid())
+  name      String
+  role      String?
+  avatarUrl String?
+  quote     String   @db.Text
+  rating    Int      @default(5)
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model Post {
+  id          String     @id @default(cuid())
+  title       String
+  slug        String     @unique
+  excerpt     String?    @db.Text
+  body        String     @db.LongText
+  coverUrl    String?
+  category    String?
+  tags        Json?
+  status      PostStatus @default(DRAFT)
+  authorId    String?
+  author      User?      @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  publishedAt DateTime?
+  metaTitle   String?
+  metaDescription String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([status, publishedAt])
+  @@index([category])
+}
+
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime  @updatedAt
+}
+
+// Admin-curated "Browse by configuration" tiles (1 BHK, Villas, Plots, …)
+model Configuration {
+  id          String   @id @default(cuid())
+  label       String
+  slug        String   @unique
+  subtitle    String?
+  imageUrl    String?
+  icon        String?              // emoji fallback when no image
+  filterType  String   @default("bedrooms") // bedrooms | type | status | link
+  filterValue String?              // "2" | "COMMERCIAL" | "READY_TO_MOVE" | "/projects?..."
+  isFeatured  Boolean  @default(false)       // show on the home page
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt @default(now())
+
+  @@index([isFeatured])
+  @@index([isActive])
+}
+
+model City {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  state     String?
+  country   String   @default("India")
+  slug      String   @unique
+  imageUrl  String?
+  lat       Float?
+  lng       Float?
+  isActive  Boolean  @default(true)
+  isPopular Boolean  @default(false)   // show in hero / "top cities"
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+}
