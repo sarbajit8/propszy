@@ -2,6 +2,36 @@ const { Prisma } = require('@prisma/client');
 const { ApiError } = require('../utils/ApiError');
 const { env } = require('../config/env');
 
+// Turn a raw field key into words a person can read.
+const FIELD_LABELS = {
+  reraNo: 'RERA number', priceMin: 'minimum price', priceMax: 'maximum price',
+  lat: 'latitude', lng: 'longitude', metaTitle: 'meta title', metaDescription: 'meta description',
+  coverImageUrl: 'cover image', brochureUrl: 'brochure link', virtualTourUrl: 'virtual tour link',
+  featuredVideoUrl: 'featured video link', developerId: 'developer', categoryId: 'category',
+  commissionBaseValue: 'commission value', emailOrPhone: 'email or phone', unitType: 'unit type',
+  carpetArea: 'carpet area', builtUpArea: 'built-up area', amenityIds: 'amenities',
+  foundedYear: 'year established', totalProjects: 'total projects', logoUrl: 'logo',
+};
+function labelFor(path = []) {
+  const key = [...path].reverse().find((p) => typeof p === 'string');
+  if (!key) return 'A field';
+  return FIELD_LABELS[key] || key.replace(/([A-Z])/g, ' $1').replace(/[_-]/g, ' ').replace(/^./, (c) => c.toUpperCase()).trim();
+}
+function humanizeZodIssue(issue) {
+  const label = labelFor(issue.path || []);
+  const cap = label.charAt(0).toUpperCase() + label.slice(1);
+  const m = String(issue.message || '');
+  if (issue.code === 'invalid_type' && /received undefined|Required/i.test(m)) return `${cap} is required.`;
+  if (issue.code === 'invalid_type') return `Please enter a valid ${label}.`;
+  if (/required/i.test(m)) return `${cap} is required.`;
+  if (/invalid url|must be a valid url/i.test(m)) return `${cap} must be a valid link starting with http.`;
+  if (/invalid email/i.test(m)) return 'Please enter a valid email address.';
+  if (/at least|too small|greater than|min/i.test(m)) return `${cap} is too short or too small.`;
+  if (/at most|too big|less than|max/i.test(m)) return `${cap} is too long or too large.`;
+  if (/expected|invalid/i.test(m)) return `Please enter a valid ${label}.`;
+  return `Please check the ${label} field.`;
+}
+
 // 404 for unmatched routes
 function notFoundHandler(req, res, next) {
   next(new ApiError(404, `Route not found: ${req.method} ${req.originalUrl}`));
@@ -16,13 +46,16 @@ function errorHandler(err, req, res, next) {
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
     if (err.code === 'P2002') {
       statusCode = 409;
-      message = `Duplicate value for ${err.meta?.target}`;
+      message = 'That already exists — please use a different value.';
     } else if (err.code === 'P2025') {
       statusCode = 404;
-      message = 'Record not found';
+      message = 'We couldn’t find that item — it may have been removed.';
+    } else if (err.code === 'P2003') {
+      statusCode = 400;
+      message = 'One of the linked items no longer exists. Please refresh and try again.';
     } else {
       statusCode = 400;
-      message = 'Database request error';
+      message = 'We couldn’t save that. Please check your entries and try again.';
       details = env.isProd ? undefined : err.message;
     }
   }
@@ -31,21 +64,19 @@ function errorHandler(err, req, res, next) {
     statusCode = 422;
     const issues = err.errors || err.issues || [];
     details = issues.map((e) => ({ path: (e.path || []).join('.'), message: e.message }));
-    // surface the first human-readable issue as the main message
-    const first = issues[0];
-    message = first
-      ? (first.path?.length ? `${first.path.join('.')}: ${first.message}` : first.message)
-      : 'Validation failed';
+    message = issues.length ? humanizeZodIssue(issues[0]) : 'Please check the highlighted fields and try again.';
+    if (issues.length > 1) message += ` (and ${issues.length - 1} more field${issues.length - 1 === 1 ? '' : 's'})`;
   }
 
   if (err?.name === 'JsonWebTokenError' || err?.name === 'TokenExpiredError') {
     statusCode = 401;
-    message = 'Invalid or expired token';
+    message = 'Your session has expired. Please sign in again.';
   }
 
   if (statusCode >= 500) {
     // eslint-disable-next-line no-console
     console.error(err);
+    if (!(err instanceof ApiError)) message = 'Something went wrong on our side. Please try again in a moment.';
   }
 
   res.status(statusCode).json({

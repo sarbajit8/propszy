@@ -3,6 +3,7 @@ import { GoogleMap, useJsApiLoader, MarkerF, MarkerClustererF, InfoWindowF } fro
 import { Link } from 'react-router-dom';
 import { priceRange } from '../lib/format';
 import { usePublicConfig } from '../lib/publicConfig';
+import { GMAPS_LOADER } from '../lib/gmaps';
 
 const ENV_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY || '';
 const containerStyle = { width: '100%', height: '100%' };
@@ -38,7 +39,7 @@ function NoKeyFallback({ pins, height }) {
 }
 
 function LoadedMap({ apiKey, pins, center, zoom, height, single, activeId, onSelect, panTo }) {
-  const { isLoaded } = useJsApiLoader({ googleMapsApiKey: apiKey, id: 'gmaps' });
+  const { isLoaded, loadError } = useJsApiLoader({ googleMapsApiKey: apiKey, ...GMAPS_LOADER });
   const mapRef = useRef(null);
   const [active, setActive] = useState(null);
 
@@ -73,6 +74,13 @@ function LoadedMap({ apiKey, pins, center, zoom, height, single, activeId, onSel
     }
   }, [panTo]);
 
+  if (loadError) {
+    return (
+      <div className="grid place-items-center rounded-xl border border-amber-200 bg-amber-50 p-6 text-center text-sm text-amber-800" style={{ minHeight: height }}>
+        <p>The map couldn’t load. Check that the Google Maps API key has <b>Maps JavaScript API</b> enabled and that this site is an allowed referrer.</p>
+      </div>
+    );
+  }
   if (!isLoaded) return <div className="grid place-items-center rounded-xl border border-slate-200 bg-slate-50" style={{ height }}>Loading map…</div>;
 
   const g = window.google.maps;

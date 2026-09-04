@@ -1,6 +1,6 @@
 # Propszy one-shot local setup (run from the repo root in PowerShell).
 # Node v24 is installed system-wide at C:\Program Files\nodejs.
-# Requires: XAMPP MySQL/MariaDB running on localhost:3306.
+# Requires: XAMPP MySQL/MariaDB running on localhost:3307.
 
 $ErrorActionPreference = 'Stop'
 

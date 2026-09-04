@@ -282,11 +282,11 @@ export default function Home() {
               </div>
               <Link to="/projects?status=UPCOMING" className="btn-outline shrink-0">Explore all launches →</Link>
             </div>
-            <div className="grid gap-x-5 gap-y-7 sm:grid-cols-2 lg:grid-cols-4">
-              {newLaunch.items.slice(0, 8).map((p) => (
+            <Scroller itemClass="w-[240px] sm:w-[280px]">
+              {newLaunch.items.slice(0, 12).map((p) => (
                 <ProjectCard key={p.id} project={p} variant="recommended" tag="New launch" />
               ))}
-            </div>
+            </Scroller>
           </div>
         </Band>
       )}
@@ -394,20 +394,26 @@ export default function Home() {
       )}
 
       {/* Move in now / later */}
-      <Band tint="bg-[#fdf5ec]">
-        <div className="container-app pb-12">
-          <Head title="Move in now, next year or later" />
-          <div className="grid gap-4 sm:grid-cols-3">
+      <Band tint="bg-white">
+        <div className="container-app py-12">
+          <Head title="Move in now, next year or later" subtitle="Filter projects by how soon you can move in" />
+          <div className="grid gap-5 sm:grid-cols-3">
             {[
-              ['Ready to move', 'Occupy today', 'READY_TO_MOVE', '🔑'],
-              ['Under construction', 'Ongoing projects', 'ONGOING', '🏗️'],
-              ['New launches', 'Pre-launch pricing', 'UPCOMING', '✨'],
-            ].map(([label, sub, status, icon]) => (
-              <Link key={status} to={`/projects?status=${status}`} className="card flex items-center gap-4 p-5 hover:shadow-md">
-                <span className="text-3xl">{icon}</span>
-                <span>
-                  <span className="block font-semibold">{label}</span>
-                  <span className="text-sm text-slate-500">{sub}</span>
+              { label: 'Ready to move', sub: 'Occupy today — no waiting, no GST surprises', status: 'READY_TO_MOVE', grad: 'from-emerald-600 to-emerald-800' },
+              { label: 'Under construction', sub: 'Watch it rise, book at today’s price', status: 'ONGOING', grad: 'from-brand-600 to-brand-800' },
+              { label: 'New launches', sub: 'Pre-launch pricing on the newest projects', status: 'UPCOMING', grad: 'from-amber-500 to-orange-700' },
+            ].map((c) => (
+              <Link key={c.status} to={`/projects?status=${c.status}`}
+                className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${c.grad} p-6 text-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl`}>
+                <span className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/10" />
+                <span className="pointer-events-none absolute -bottom-12 -left-8 h-36 w-36 rounded-full bg-black/10" />
+                <span className="relative block">
+                  <span className="block text-xs font-semibold uppercase tracking-widest text-white/70">Status</span>
+                  <span className="mt-2 block text-xl font-bold">{c.label}</span>
+                  <span className="mt-1 block text-sm leading-relaxed text-white/80">{c.sub}</span>
+                  <span className="mt-5 inline-block border-b border-white/40 pb-0.5 text-sm font-semibold transition group-hover:border-white">
+                    Browse projects
+                  </span>
                 </span>
               </Link>
             ))}
@@ -431,26 +437,6 @@ export default function Home() {
           </div>
         </Band>
       )}
-
-      {/* Advertiser type */}
-      <Band tint="bg-[#eef4fb]">
-        <div className="container-app py-12">
-          <Head title="Choose the right advisor" subtitle="Whoever you deal with, deal informed" />
-          <div className="grid gap-4 sm:grid-cols-3">
-            {[
-              ['Talk to an agent', 'Verified channel partners', '/become-agent', 'Browse agents'],
-              ['List with us', 'Owners & builders', '/register', 'Post a project'],
-              ['Get expert help', 'Home loans & legal', '/blog', 'Read guides'],
-            ].map(([label, sub, to, cta]) => (
-              <div key={label} className="card p-6">
-                <p className="text-base font-semibold">{label}</p>
-                <p className="mt-1 text-sm text-slate-500">{sub}</p>
-                <Link to={to} className="mt-3 inline-block text-sm font-semibold text-brand-700 hover:underline">{cta} →</Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Band>
 
       {/* remaining curated sliders */}
       {restSections.map((s, i) => (
@@ -539,20 +525,6 @@ export default function Home() {
         </Band>
       )}
 
-      {/* App download band */}
-      <div className="container-app py-8">
-        <div className="grid items-center gap-6 rounded-2xl border border-slate-200 bg-white p-8 sm:grid-cols-[1fr_auto]">
-          <div>
-            <h2 className="text-xl font-bold">Take Propszy with you</h2>
-            <p className="mt-1 text-sm text-slate-500">Save searches, get price alerts and chat with advisors on the go.</p>
-            <div className="mt-4 flex gap-3">
-              <span className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">▶ Google Play</span>
-              <span className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white"> App Store</span>
-            </div>
-          </div>
-          <div className="grid h-28 w-28 place-items-center rounded-2xl bg-brand-50 text-5xl">📱</div>
-        </div>
-      </div>
     </>
   );
 }

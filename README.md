@@ -48,7 +48,7 @@ propszy/
 
 ## Prerequisites
 
-- **XAMPP** running MySQL/MariaDB on `localhost:3306` (default user `root`, empty password).
+- **XAMPP** running MySQL/MariaDB on `localhost:3307` (default user `root`, empty password).
 - **Node.js** — v24.20.0 is installed system-wide at `C:\Program Files\nodejs` (npm 11). Open a **new** terminal so it's on PATH.
 
 ## Database

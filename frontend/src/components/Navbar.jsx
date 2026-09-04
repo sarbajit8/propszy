@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import clsx from 'clsx';
@@ -6,6 +7,7 @@ import { logout, selectUser } from '../features/auth/authSlice';
 import { useFavorites, useCities } from '../lib/queries';
 import SearchAutocomplete from './SearchAutocomplete';
 import Logo from './Logo';
+import { avatarPlaceholder } from '../lib/placeholder';
 
 const nav = [
   { to: '/projects', label: 'Projects' },
@@ -109,6 +111,12 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // lock page scroll while the mobile sidebar is open
+  useEffect(() => {
+    document.body.style.overflow = open ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [open]);
+
   const panelOpen = open || search;
   const overHero = location.pathname === '/';
   // sitting over the hero image, at the very top, with nothing open → light + near-invisible
@@ -177,10 +185,18 @@ export default function Navbar() {
           )}
 
           <button
-            className={clsx('grid h-10 w-10 place-items-center rounded-lg lg:hidden', light ? 'text-white hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100')}
-            onClick={() => setOpen((v) => !v)} aria-label="Menu"
+            className={clsx(
+              'grid h-10 w-10 shrink-0 place-items-center rounded-xl ring-1 transition-colors lg:hidden',
+              light ? 'text-white ring-white/20 hover:bg-white/10' : 'text-slate-700 ring-slate-200 hover:bg-slate-100'
+            )}
+            onClick={() => { setOpen((v) => !v); setSearch(false); }}
+            aria-label="Menu" aria-expanded={open}
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" /></svg>
+            <span className="relative block h-3.5 w-[18px]">
+              <span className={clsx('absolute left-0 top-0 h-[1.5px] w-[18px] rounded-full bg-current transition-all duration-300 ease-out', open && 'top-[6.5px] rotate-45')} />
+              <span className={clsx('absolute left-0 top-[6.5px] h-[1.5px] w-[18px] rounded-full bg-current transition-all duration-200 ease-out', open && 'opacity-0')} />
+              <span className={clsx('absolute left-0 top-[13px] h-[1.5px] w-[18px] rounded-full bg-current transition-all duration-300 ease-out', open && 'top-[6.5px] -rotate-45')} />
+            </span>
           </button>
         </div>
       </div>
@@ -193,29 +209,91 @@ export default function Navbar() {
         </div>
       )}
 
-      {open && (
-        <div className="border-t border-slate-200 bg-white px-4 py-3 lg:hidden">
-          {nav.map((n) => (
-            <Link key={n.label} to={n.to} onClick={() => setOpen(false)}
-              className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
-              {n.label}
-            </Link>
-          ))}
-          <Link to={user ? '/wishlist' : '/login'} onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Wishlist</Link>
-          <div className="mt-2 flex gap-2 border-t border-slate-100 pt-3">
+      {/* Mobile menu — slide-in sidebar, portaled to <body> so it's always
+          truly fixed to the viewport (immune to any ancestor's backdrop-blur/
+          sticky/transform creating its own containing block). */}
+      {createPortal(
+        <div
+          className={clsx('fixed inset-0 z-[100] lg:hidden', open ? 'pointer-events-auto' : 'pointer-events-none')}
+          aria-hidden={!open}
+        >
+          <div
+            className={clsx('fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity duration-300', open ? 'opacity-100' : 'opacity-0')}
+            onClick={() => setOpen(false)}
+          />
+          <aside
+            className={clsx(
+              'fixed inset-y-0 right-0 flex h-[100dvh] w-[85vw] max-w-xs flex-col bg-white shadow-2xl transition-transform duration-300 ease-out',
+              open ? 'translate-x-0' : 'translate-x-full'
+            )}
+          >
+          <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-100 px-4">
+            <Logo tone="dark" />
+            <button onClick={() => setOpen(false)} aria-label="Close menu"
+              className="grid h-9 w-9 place-items-center rounded-lg text-slate-500 hover:bg-slate-100">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" /></svg>
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-4 py-4">
             {user ? (
-              <>
-                <Link to={dashboardPath(user.role)} className="btn-outline flex-1" onClick={() => setOpen(false)}>Dashboard</Link>
-                <button className="btn-ghost" onClick={async () => { await dispatch(logout()); setOpen(false); navigate('/'); }}>Sign out</button>
-              </>
+              <Link to={dashboardPath(user.role)} onClick={() => setOpen(false)}
+                className="mb-4 flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
+                <img src={user.avatarUrl || avatarPlaceholder(user.name)} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover" />
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-semibold text-slate-900">{user.name}</span>
+                  <span className="block text-xs capitalize text-slate-400">{user.role?.toLowerCase()} · View dashboard</span>
+                </span>
+              </Link>
             ) : (
-              <>
+              <div className="mb-4 flex gap-2">
                 <Link to="/login" className="btn-outline flex-1" onClick={() => setOpen(false)}>Sign in</Link>
                 <Link to="/register" className="btn-primary flex-1" onClick={() => setOpen(false)}>Get started</Link>
-              </>
+              </div>
             )}
+
+            <nav className="space-y-0.5">
+              {nav.map((n) => (
+                <NavLink key={n.label} to={n.to} onClick={() => setOpen(false)}
+                  className={({ isActive }) => clsx(
+                    'flex items-center justify-between rounded-lg px-3 py-2.5 text-[15px] font-medium transition-colors',
+                    isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-700 hover:bg-slate-50'
+                  )}
+                >
+                  <span className="flex items-center gap-2">
+                    {n.label}
+                    {n.badge && <span className="rounded bg-rose-500 px-1.5 py-0.5 text-[9px] font-bold leading-none text-white">{n.badge}</span>}
+                  </span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-slate-300"><path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </NavLink>
+              ))}
+              <Link to={user ? '/wishlist' : '/login'} onClick={() => setOpen(false)}
+                className="flex items-center justify-between rounded-lg px-3 py-2.5 text-[15px] font-medium text-slate-700 hover:bg-slate-50">
+                Wishlist
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-slate-300"><path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </Link>
+            </nav>
+
+            <Link to="/register" onClick={() => setOpen(false)}
+              className="mt-4 flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+              Post Property
+              <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">FREE</span>
+            </Link>
           </div>
-        </div>
+
+          {user && (
+            <div className="shrink-0 border-t border-slate-100 p-4">
+              <button
+                className="btn-ghost w-full justify-center"
+                onClick={async () => { await dispatch(logout()); setOpen(false); navigate('/'); }}
+              >
+                Sign out
+              </button>
+            </div>
+          )}
+          </aside>
+        </div>,
+        document.body
       )}
     </header>
   );

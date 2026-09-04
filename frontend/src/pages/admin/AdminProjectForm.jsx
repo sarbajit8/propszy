@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { api, unwrap, apiError } from '../../lib/api';
 import { useAmenities } from '../../lib/queries';
 import { PageLoader } from '../../components/ui';
 import Stepper from '../../components/Stepper';
 import ImageUpload from '../../components/ImageUpload';
+import LocationPicker from '../../components/LocationPicker';
 import MediaManager from './MediaManager';
 import UnitsManager from './UnitsManager';
 import { priceRange, TYPE_LABEL } from '../../lib/format';
@@ -29,7 +30,37 @@ export default function AdminProjectForm() {
   const { id } = useParams();
   const editing = id && id !== 'new';
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const { data: amenities = [] } = useAmenities();
+  const [newAmenity, setNewAmenity] = useState('');
+
+  const addAmenity = async () => {
+    const name = newAmenity.trim();
+    if (!name) return;
+    const existing = amenities.find((a) => a.name.toLowerCase() === name.toLowerCase());
+    if (existing) {
+      setForm((f) => ({ ...f, amenityIds: [...new Set([...f.amenityIds, existing.id])] }));
+      setNewAmenity('');
+      return;
+    }
+    try {
+      const { data } = await api.post('/amenities', { name });
+      await qc.invalidateQueries({ queryKey: ['amenities'] });
+      setForm((f) => ({ ...f, amenityIds: [...f.amenityIds, data.data.id] }));
+      setNewAmenity('');
+      toast.success(`Added “${name}”`);
+    } catch (err) {
+      // already exists (created elsewhere) — pull the fresh list and select it
+      const fresh = await qc.fetchQuery({ queryKey: ['amenities'], queryFn: () => unwrap(api.get('/amenities')) }).catch(() => []);
+      const match = fresh.find((a) => a.name.toLowerCase() === name.toLowerCase());
+      if (match) {
+        setForm((f) => ({ ...f, amenityIds: [...new Set([...f.amenityIds, match.id])] }));
+        setNewAmenity('');
+      } else {
+        toast.error(apiError(err));
+      }
+    }
+  };
   const { data: cities = [] } = useQuery({ queryKey: ['cities'], queryFn: () => unwrap(api.get('/cities')) });
   const { data: developers = [] } = useQuery({ queryKey: ['developers'], queryFn: () => unwrap(api.get('/developers')) });
 
@@ -45,11 +76,12 @@ export default function AdminProjectForm() {
 
   useEffect(() => {
     if (existing) {
-      setForm({
-        ...EMPTY,
-        ...Object.fromEntries(Object.entries(existing).filter(([k]) => k in EMPTY)),
-        amenityIds: (existing.amenities || []).map((a) => a.id),
-      });
+      const loaded = Object.fromEntries(
+        Object.entries(existing)
+          .filter(([k]) => k in EMPTY)
+          .map(([k, v]) => [k, v == null ? (typeof EMPTY[k] === 'boolean' ? false : '') : v]),
+      );
+      setForm({ ...EMPTY, ...loaded, amenityIds: (existing.amenities || []).map((a) => a.id) });
     }
   }, [existing]);
 
@@ -68,7 +100,7 @@ export default function AdminProjectForm() {
       lat: toNum(form.lat), lng: toNum(form.lng),
       commissionBaseValue: toNum(form.commissionBaseValue) ?? 0,
     };
-    Object.keys(payload).forEach((k) => payload[k] === '' && delete payload[k]);
+    Object.keys(payload).forEach((k) => (payload[k] === '' || payload[k] == null) && delete payload[k]);
     payload.developerId = form.developerId || null;
     return payload;
   };
@@ -105,6 +137,8 @@ export default function AdminProjectForm() {
   const needsProject = !editing;
   const units = existing?.properties || [];
   const media = existing?.media || [];
+  const cityRow = cities.find((c) => c.name === form.city);
+  const pickerCenter = cityRow?.lat && cityRow?.lng ? { lat: cityRow.lat, lng: cityRow.lng } : undefined;
 
   return (
     <div className="max-w-3xl space-y-6 pb-24">
@@ -178,6 +212,18 @@ export default function AdminProjectForm() {
                   );
                 })}
               </div>
+              <div className="mt-3 flex gap-2 border-t border-slate-100 pt-3">
+                <input
+                  className="input h-9 py-1 text-sm"
+                  placeholder="Add another amenity…"
+                  value={newAmenity}
+                  onChange={(e) => setNewAmenity(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addAmenity(); } }}
+                />
+                <button type="button" className="btn-outline h-9 shrink-0 px-3 py-1 text-xs" onClick={addAmenity}>
+                  Add
+                </button>
+              </div>
             </fieldset>
 
             <fieldset className="rounded-lg border border-slate-200 p-3">
@@ -197,6 +243,22 @@ export default function AdminProjectForm() {
         {/* ── Step 1 · Location ───────────────────────── */}
         {step === 1 && (
           <>
+            <div>
+              <label className="label">Pick on the map</label>
+              <LocationPicker
+                value={{ lat: form.lat, lng: form.lng }}
+                fallbackCenter={pickerCenter}
+                onPick={(loc) => setForm((f) => ({
+                  ...f,
+                  lat: loc.lat ?? f.lat,
+                  lng: loc.lng ?? f.lng,
+                  address: loc.address || f.address,
+                  city: loc.city || f.city,
+                  state: loc.state || f.state,
+                  pincode: loc.pincode || f.pincode,
+                }))}
+              />
+            </div>
             <div><label className="label">Address</label><input className="input" value={form.address} onChange={set('address')} /></div>
             <div className="grid grid-cols-3 gap-3">
               <div>
@@ -218,7 +280,7 @@ export default function AdminProjectForm() {
               <div><label className="label">Latitude</label><input className="input" value={form.lat} onChange={set('lat')} placeholder="12.9716" /></div>
               <div><label className="label">Longitude</label><input className="input" value={form.lng} onChange={set('lng')} placeholder="77.5946" /></div>
             </div>
-            <p className="text-xs text-slate-400">Tip: right-click a spot in Google Maps → “What’s here?” to copy exact lat/long.</p>
+            <p className="text-xs text-slate-400">Latitude / longitude fill in from the map above — edit here only to fine-tune.</p>
           </>
         )}
 
