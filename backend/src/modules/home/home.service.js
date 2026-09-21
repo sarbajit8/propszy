@@ -246,8 +246,8 @@ async function buildHome() {
     .sort((a, b) => b.count - a.count);
 
   const cities = (cityRows.length
-    ? cityRows.map((c) => ({ name: c.name, slug: c.slug, state: c.state, imageUrl: c.imageUrl, isPopular: c.isPopular, count: countByCity[c.name] || 0 }))
-    : cityCounts.map((c) => ({ name: c.city, slug: null, count: c._count._all, isPopular: true }))
+    ? cityRows.map((c) => ({ name: c.name, slug: c.slug, state: c.state, imageUrl: c.imageUrl, isPopular: c.isPopular, isFeatured: c.isFeatured, count: countByCity[c.name] || 0 }))
+    : cityCounts.map((c) => ({ name: c.city, slug: null, count: c._count._all, isPopular: true, isFeatured: true }))
   );
 
   const budgets = await Promise.all(

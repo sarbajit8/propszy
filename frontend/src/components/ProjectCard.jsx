@@ -17,11 +17,11 @@ function possessionLabel(p) {
 
 function Badges({ project }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
-      <StatusBadge status={project.status} label={STATUS_LABEL[project.status]} />
-      {project.isFeatured && <span className="badge bg-brand-600 text-white">Featured</span>}
-      {project.isTrending && <span className="badge bg-amber-500 text-white">Trending</span>}
-      {project.isBestSeller && <span className="badge bg-emerald-600 text-white">Best seller</span>}
+    <div className="flex flex-wrap gap-1 sm:gap-1.5">
+      <StatusBadge status={project.status} label={STATUS_LABEL[project.status]} className="text-[10px] sm:text-xs px-1.5 py-0.5 sm:px-2 sm:py-1" />
+      {project.isFeatured && <span className="badge text-[10px] sm:text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 bg-brand-600 text-white">Featured</span>}
+      {project.isTrending && <span className="badge text-[10px] sm:text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 bg-amber-500 text-white">Trending</span>}
+      {project.isBestSeller && <span className="badge text-[10px] sm:text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 bg-emerald-600 text-white">Best seller</span>}
     </div>
   );
 }
@@ -162,15 +162,15 @@ export default function ProjectCard({ project, variant = 'grid', rank, tag }) {
       <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
         <img src={img} alt={project.name} loading="lazy"
           className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
-        <div className="absolute left-3 top-3"><Badges project={project} /></div>
+        <div className="absolute left-2 top-2 sm:left-3 sm:top-3"><Badges project={project} /></div>
       </div>
-      <div className="flex flex-1 flex-col p-4">
-        <p className="text-xs font-medium uppercase tracking-wide text-brand-600">{TYPE_LABEL[project.type] || project.type}</p>
-        <h3 className="mt-1 line-clamp-1 text-base font-semibold text-slate-900 group-hover:text-brand-700">{project.name}</h3>
-        <p className="mt-0.5 line-clamp-1 text-sm text-slate-500">{[project.address, project.city].filter(Boolean).join(', ') || '—'}</p>
-        <div className="mt-3 flex items-center justify-between pt-1">
-          <span className="text-sm font-semibold text-slate-900">{priceRange(project.priceMin, project.priceMax)}</span>
-          {units != null && <span className="text-xs text-slate-400">{units} units</span>}
+      <div className="flex flex-1 flex-col p-2.5 sm:p-4">
+        <p className="text-[10px] sm:text-xs font-medium uppercase tracking-wide text-brand-600">{TYPE_LABEL[project.type] || project.type}</p>
+        <h3 className="mt-0.5 sm:mt-1 line-clamp-1 text-xs sm:text-base font-semibold text-slate-900 group-hover:text-brand-700">{project.name}</h3>
+        <p className="mt-0.5 line-clamp-1 text-[11px] sm:text-sm text-slate-500">{[project.address, project.city].filter(Boolean).join(', ') || '—'}</p>
+        <div className="mt-2 sm:mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-t border-slate-100 pt-1.5 sm:pt-2">
+          <span className="text-xs sm:text-sm font-semibold text-slate-900">{priceRange(project.priceMin, project.priceMax)}</span>
+          {units != null && <span className="text-[10px] sm:text-xs text-slate-400">{units} units</span>}
         </div>
       </div>
     </Link>

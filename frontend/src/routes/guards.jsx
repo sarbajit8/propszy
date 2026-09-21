@@ -6,8 +6,29 @@ export function RequireAuth({ children, roles }) {
   const user = useSelector(selectUser);
   const location = useLocation();
 
-  if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
+  // three separate sign-in pages: associate (agent) routes → mobile-OTP
+  // associate portal, admin-only routes → password-based admin console,
+  // everything else (customer areas) → the mobile-OTP customer sign-in
+  const isAgentRoute = roles?.includes('AGENT');
+  const isAdminRoute = !isAgentRoute && roles?.some((r) => ['ADMIN', 'SUBADMIN'].includes(r));
+  const loginPath = isAgentRoute ? '/associate/login' : isAdminRoute ? '/admin/login' : '/login';
+
+  if (!user) return <Navigate to={loginPath} state={{ from: location }} replace />;
   if (roles && !roles.includes(user.role)) return <Navigate to="/" replace />;
+  return children;
+}
+
+// Gates the working parts of the associate panel (network, leads, commissions,
+// rates, recruiting) behind an APPROVED KYC — an agent can still see the
+// dashboard overview and the KYC page itself, but nothing that touches
+// downline/commission data until an admin has verified them.
+export function RequireKyc({ children }) {
+  const user = useSelector(selectUser);
+  const location = useLocation();
+  if (user?.role !== 'AGENT') return children; // staff previewing the panel bypass KYC entirely
+  if (user.kycStatus !== 'APPROVED') {
+    return <Navigate to="/associate/kyc" state={{ from: location, locked: true }} replace />;
+  }
   return children;
 }
 
@@ -15,9 +36,9 @@ export function GuestOnly({ children }) {
   const user = useSelector(selectUser);
   const location = useLocation();
   if (user) {
-    // signed-in visitor hitting the agent sign-up → send to the upgrade flow
-    if (location.pathname === '/register' && new URLSearchParams(location.search).get('role') === 'agent') {
-      return <Navigate to="/become-agent" replace />;
+    // signed-in visitor hitting the associate sign-up → send to the upgrade flow
+    if (location.pathname === '/register' && new URLSearchParams(location.search).get('role') === 'associate') {
+      return <Navigate to="/become-associate" replace />;
     }
     return <Navigate to="/" replace />;
   }

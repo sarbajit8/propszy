@@ -18,10 +18,30 @@ function safeName(original) {
 }
 
 const localDriver = {
-  /** @returns {Promise<{url:string, key:string, size:number}>} */
   async save(file, folder = 'misc') {
     const dir = path.join(uploadRoot, folder);
     ensureDir(dir);
+
+    // If file was already streamed to disk by diskStorage
+    if (file.filename && file.path) {
+      const filename = file.filename;
+      const targetPath = path.join(dir, filename);
+      if (path.resolve(file.path) !== path.resolve(targetPath)) {
+        try {
+          await fs.promises.rename(file.path, targetPath);
+        } catch {
+          await fs.promises.copyFile(file.path, targetPath);
+          await fs.promises.unlink(file.path).catch(() => {});
+        }
+      }
+      const key = `${folder}/${filename}`;
+      return {
+        url: `${env.storage.publicBaseUrl}/uploads/${key}`,
+        key,
+        size: file.size,
+      };
+    }
+
     const key = `${folder}/${safeName(file.originalname)}`;
     const dest = path.join(uploadRoot, key);
     await fs.promises.writeFile(dest, file.buffer);

@@ -36,10 +36,11 @@ const COLS = [
   {
     title: 'For partners',
     links: [
-      ['Become an agent', '/become-agent'],
-      ['Agent login', '/login'],
-      ['Post a project', '/register'],
-      ['Advertise with us', '/register'],
+      ['Become an associate', '/become-associate'],
+      ['Associate login', '/associate/login'],
+      ['Admin login', '/admin/login'],
+      ['Post a project', '/login'],
+      ['Advertise with us', '/login'],
     ],
   },
   {
@@ -57,13 +58,13 @@ const CITIES = ['Bengaluru', 'Pune', 'Mumbai', 'Hyderabad', 'Gurugram', 'Chennai
 
 export default function Footer() {
   return (
-    <footer className="mt-16 border-t border-slate-200 bg-white">
+    <footer className="mt-16 hidden border-t border-slate-200 bg-white lg:block">
       <div className="container-app py-12">
         <div className="grid gap-8 sm:grid-cols-3 lg:grid-cols-6">
           <div className="sm:col-span-3 lg:col-span-1">
             <Logo />
             <p className="mt-3 text-sm text-slate-500">
-              RERA-first real estate — discover projects, compare units and connect with verified agents.
+              RERA-first real estate — discover projects, compare units and connect with verified associates.
             </p>
           </div>
           {COLS.map((col) => (

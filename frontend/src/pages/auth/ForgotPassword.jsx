@@ -23,11 +23,11 @@ export function ForgotPassword() {
   };
 
   return (
-    <AuthShell title="Reset your password" subtitle="We'll email you a secure reset link.">
+    <AuthShell variant="staff" title="Reset your password" subtitle="Admin &amp; sub-admin accounts only — we'll email you a secure reset link.">
       {sent ? (
         <div className="card p-6 text-center text-sm text-slate-600">
           If an account exists for <b>{email}</b>, a reset link is on its way.
-          <div className="mt-4"><Link to="/login" className="btn-outline">Back to sign in</Link></div>
+          <div className="mt-4"><Link to="/admin/login" className="btn-outline">Back to sign in</Link></div>
         </div>
       ) : (
         <form onSubmit={submit} className="space-y-4">
@@ -67,9 +67,9 @@ export function ResetPassword() {
   };
 
   return (
-    <AuthShell title="Choose a new password">
+    <AuthShell variant="staff" title="Choose a new password">
       {done ? (
-        <Link to="/login" className="btn-primary w-full">Go to sign in</Link>
+        <Link to="/admin/login" className="btn-primary w-full">Go to sign in</Link>
       ) : (
         <form onSubmit={submit} className="space-y-4">
           <div>

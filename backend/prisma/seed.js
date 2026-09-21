@@ -398,9 +398,9 @@ async function main() {
     // an admin can upload a real photo per city in Admin → Cities.
     await prisma.city.upsert({
       where: { name },
-      update: { state, isPopular },
+      update: { state, isPopular, isFeatured: isPopular },
       create: {
-        name, state, isPopular, sortOrder: i,
+        name, state, isPopular, isFeatured: isPopular, sortOrder: i,
         slug: slugify(name, { lower: true, strict: true }),
       },
     });

@@ -7,7 +7,7 @@ import { selectUser } from '../features/auth/authSlice';
 
 const BENEFITS = [
   ['Level-wise commission', 'Earn on every conversion — yours and your downline’s, per project-wise rates.'],
-  ['Build a network', 'Recruit sub-agents with your referral code and grow a team.'],
+  ['Build a network', 'Recruit sub-associates with your referral code and grow a team.'],
   ['Transparent ledger', 'Track pending vs. paid commissions and payouts in your dashboard.'],
   ['Verified & trusted', 'One-time KYC, then a public profile buyers can see.'],
 ];
@@ -19,19 +19,19 @@ export default function BecomeAgent() {
   const [ref, setRef] = useState(sp.get('ref') || '');
   const [busy, setBusy] = useState(false);
 
-  // agents / staff don't belong here
+  // associates / staff don't belong here
   useEffect(() => {
-    if (user?.role === 'AGENT') navigate('/agent', { replace: true });
-    else if (user?.role === 'ADMIN' || user?.role === 'SUBADMIN') navigate('/admin/agents', { replace: true });
+    if (user?.role === 'AGENT') navigate('/associate', { replace: true });
+    else if (user?.role === 'ADMIN' || user?.role === 'SUBADMIN') navigate('/admin/associates', { replace: true });
   }, [user, navigate]);
 
   const apply = async () => {
     setBusy(true);
     try {
       await api.post('/agents/apply', { referralCode: ref || undefined });
-      toast.success('You’re an agent now — complete your KYC to start earning.');
+      toast.success('You’re an associate now — complete your KYC to start earning.');
       // reflect the new role/session
-      window.location.assign('/agent/kyc');
+      window.location.assign('/associate/kyc');
       return;
     } catch (e) {
       toast.error(apiError(e));
@@ -76,8 +76,8 @@ export default function BecomeAgent() {
                   <Link to={`/register?role=agent${ref ? `&ref=${encodeURIComponent(ref)}` : ''}`} className="btn bg-white text-brand-700 hover:bg-brand-50">
                     Register as an agent
                   </Link>
-                  <Link to="/login" className="btn border border-white/40 text-white hover:bg-white/10">
-                    I already have an account
+                  <Link to="/agent/login" className="btn border border-white/40 text-white hover:bg-white/10">
+                    I already have an agent account
                   </Link>
                 </div>
               )}

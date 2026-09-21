@@ -4,6 +4,7 @@ const { asyncHandler, ok, parsePagination, pageMeta } = require('../../utils/htt
 const { ApiError } = require('../../utils/ApiError');
 const { hashPassword, verifyPassword } = require('../../utils/tokens');
 const { publicUser } = require('../auth/auth.service');
+const { logActivity } = require('../../services/activity');
 
 const profileSchema = z.object({
   name: z.string().min(2).max(120).optional(),
@@ -88,4 +89,33 @@ const adminUpdateUser = asyncHandler(async (req, res) => {
   return ok(res, { user: publicUser(user) });
 });
 
-module.exports = { updateProfile, changePassword, listUsers, getUser, adminUpdateUser };
+// DELETE /users/:id — admin removes an associate or customer account.
+// Blocked when the account has commission/payout history, so a delete can
+// never silently wipe out earnings/payout records (those cascade on User);
+// deactivating (PATCH isActive:false) is the safe path for those accounts.
+const deleteUser = asyncHandler(async (req, res) => {
+  const target = await prisma.user.findUnique({ where: { id: req.params.id } });
+  if (!target) throw ApiError.notFound('User not found');
+  if (target.id === req.user.id) throw ApiError.badRequest('You cannot delete your own account');
+
+  if (target.role === 'ADMIN') {
+    const otherAdmins = await prisma.user.count({ where: { role: 'ADMIN', id: { not: target.id } } });
+    if (otherAdmins === 0) throw ApiError.badRequest('At least one admin account must remain');
+  }
+
+  const [commissionCount, payoutCount] = await Promise.all([
+    prisma.commission.count({ where: { agentId: target.id } }),
+    prisma.payout.count({ where: { agentId: target.id } }),
+  ]);
+  if (commissionCount > 0 || payoutCount > 0) {
+    throw ApiError.badRequest(
+      'This account has commission/payout history — deactivate it instead of deleting, to keep financial records intact'
+    );
+  }
+
+  await prisma.user.delete({ where: { id: target.id } });
+  logActivity(req, { action: 'user.delete', entityType: 'user', entityId: target.id, metadata: { role: target.role, email: target.email } });
+  return ok(res, { deleted: true });
+});
+
+module.exports = { updateProfile, changePassword, listUsers, getUser, adminUpdateUser, deleteUser };

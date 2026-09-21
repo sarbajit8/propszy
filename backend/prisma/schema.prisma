@@ -59,6 +59,7 @@ model User {
   refreshTokens  RefreshToken[]
   otps           OtpCode[]
   projectsCreated Project[]     @relation("ProjectCreatedBy")
+  propertiesCreated Property[]  @relation("PropertyCreatedBy")
   favorites      Favorite[]
   leads          Lead[]         @relation("LeadCustomer")
   leadsAsAgent   Lead[]         @relation("LeadAgent")
@@ -246,14 +247,28 @@ enum PropertyStatus {
   ON_HOLD
 }
 
+enum ListingIntent {
+  SALE
+  RENT
+  PG
+}
+
 model Property {
   id          String         @id @default(cuid())
-  projectId   String
-  project     Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String?                        // optional — a property can stand alone, unassociated with any project
+  project     Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  isPublished Boolean        @default(false)  // visibility for standalone properties (project ones inherit project.isPublished)
 
+  // who submitted it — null for admin-created listings; set when a customer self-lists
+  // (customer listings are always standalone and start unpublished, pending admin review)
+  createdById String?
+  createdBy   User?          @relation("PropertyCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  name        String?                        // display title, e.g. "Sunshine Residency 3BHK" (falls back to unitType)
   unitType    String         // "2BHK", "Plot 1200 sqft", "Shop", ...
   categoryId  String?
   category    UnitCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  listingIntent ListingIntent @default(SALE)   // Sell / Rent-Lease / PG
   carpetArea  Float?
   builtUpArea Float?
   areaUnit    String         @default("sqft")
@@ -262,6 +277,19 @@ model Property {
   facing      String?
   bedrooms    Int?
   bathrooms   Int?
+  description String?        @db.Text   // "what makes your property unique"
+  videoUrl    String?
+
+  // Inventory & stock management
+  totalUnits     Int           @default(1)
+  availableUnits Int           @default(1)
+
+  // Everything Housing.com/99acres-style that doesn't need its own column/index:
+  // { subLocality, plotLength, plotBreadth, openSides, isConstructed, constructionTypes[],
+  //   pricePerSqft, priceNegotiable, taxExcluded, isPreLeased, preLeasedRent, preLeasedTenureYears,
+  //   expectedReturnsPercent, ownership, roadWidthFt, approvedIndustryType, locationAdvantages[],
+  //   amenityTags: { amenities[], propertyFeatures[], buildingFeatures[], otherFeatures[] } }
+  details     Json?
 
   status      PropertyStatus @default(AVAILABLE)
 
@@ -276,7 +304,9 @@ model Property {
   isBestSeller Boolean       @default(false)
   soldCount    Int           @default(0)   // manual "best selling" signal
 
-  // Optional location override (else inherits project's)
+  // Location — inherited from the project when set, else (or when standalone) these are authoritative
+  city        String?
+  state       String?
   latOverride Float?
   lngOverride Float?
   addressOverride String?
@@ -292,6 +322,7 @@ model Property {
   @@index([status])
   @@index([isFeatured])
   @@index([categoryId])
+  @@index([createdById])
 }
 
 // Editable Category → Sub-category taxonomy for units (Apartment, Villa, Plot, Shop…)
@@ -424,6 +455,7 @@ model Lead {
   guestEmail  String?
   guestAadhaar String?         // customer ID captured by the agent
   guestPan     String?
+  guestPhoneVerified Boolean @default(false)  // OTP-verified at submit time, or the lead later got linked to a verified user
 
   // what the customer is looking for (when not tied to one project yet)
   purpose        String?       // BUY | RENT | INVEST
@@ -744,11 +776,12 @@ model City {
   imageUrl  String?
   lat       Float?
   lng       Float?
-  isActive  Boolean  @default(true)
-  isPopular Boolean  @default(false)   // show in hero / "top cities"
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  isActive   Boolean  @default(true)
+  isPopular  Boolean  @default(false)   // hero chips / quick lists
+  isFeatured Boolean  @default(false)   // "Explore top cities" on the home page
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([isActive])
 }

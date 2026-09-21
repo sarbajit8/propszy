@@ -73,6 +73,18 @@ function errorHandler(err, req, res, next) {
     message = 'Your session has expired. Please sign in again.';
   }
 
+  if (err?.name === 'MulterError') {
+    statusCode = 400;
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      statusCode = 413;
+      message = 'File is too large. Maximum allowed size is 150MB.';
+    } else if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+      message = `Unexpected upload field: ${err.field || 'file'}`;
+    } else {
+      message = err.message || 'File upload failed';
+    }
+  }
+
   if (statusCode >= 500) {
     // eslint-disable-next-line no-console
     console.error(err);

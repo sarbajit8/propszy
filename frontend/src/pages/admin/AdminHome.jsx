@@ -6,9 +6,9 @@ import { PageLoader } from '../../components/ui';
 
 const TOGGLE_LABELS = {
   trustBar: 'Stats bar', browseByType: 'Browse by configuration', cities: 'Explore cities',
-  budget: 'Shop by budget', builders: 'Developers strip', topAgents: 'Top agents',
+  budget: 'Shop by budget', builders: 'Developers strip', topAgents: 'Top associates',
   howItWorks: 'How it works', whyUs: 'Why choose us', testimonials: 'Testimonials',
-  blog: 'Blog', agentCta: 'Agent CTA', faq: 'FAQ', finalCta: 'Final CTA',
+  blog: 'Blog', agentCta: 'Associate CTA', faq: 'FAQ', finalCta: 'Final CTA',
 };
 
 const newSection = () => ({

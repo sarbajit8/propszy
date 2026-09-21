@@ -1,11 +1,35 @@
 const { Router } = require('express');
 const { z } = require('zod');
 const { prisma } = require('../../config/prisma');
-const { authenticate } = require('../../middleware/auth');
+const { authenticate, authorize } = require('../../middleware/auth');
 const { asyncHandler, ok, created } = require('../../utils/http');
 const { ApiError } = require('../../utils/ApiError');
 
 const router = Router();
+
+// GET /favorites/admin — every customer's wishlist, grouped by user (staff only)
+router.get(
+  '/admin',
+  authenticate,
+  authorize('ADMIN', 'SUBADMIN'),
+  asyncHandler(async (req, res) => {
+    const rows = await prisma.favorite.findMany({
+      include: {
+        user: { select: { id: true, name: true, email: true, phone: true } },
+        project: { select: { id: true, name: true, slug: true, city: true } },
+        property: { select: { id: true, name: true, unitType: true, city: true, project: { select: { name: true } } } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    const byUser = new Map();
+    for (const f of rows) {
+      if (!byUser.has(f.userId)) byUser.set(f.userId, { user: f.user, items: [] });
+      byUser.get(f.userId).items.push(f);
+    }
+    return ok(res, Array.from(byUser.values()));
+  })
+);
+
 router.use(authenticate);
 
 const bodySchema = z

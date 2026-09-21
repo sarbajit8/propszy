@@ -1,14 +1,17 @@
 const { Router } = require('express');
-const { authenticate, authorize } = require('../../middleware/auth');
+const { authenticate, authorize, requireApprovedKyc } = require('../../middleware/auth');
 const ctrl = require('./commission.controller');
 
 const router = Router();
 router.use(authenticate);
 
-router.get('/', ctrl.listCommissions);
-router.get('/summary', ctrl.mySummary);
-router.get('/rates', ctrl.commissionRates);
-router.get('/payouts', ctrl.listPayouts);
+// associate/staff only — these were previously reachable (and unscoped!) by any
+// authenticated role, since the controllers only special-case AGENT vs "else"
+const staffOrAgent = authorize('AGENT', 'ADMIN', 'SUBADMIN');
+router.get('/', staffOrAgent, requireApprovedKyc, ctrl.listCommissions);
+router.get('/summary', staffOrAgent, requireApprovedKyc, ctrl.mySummary);
+router.get('/rates', staffOrAgent, requireApprovedKyc, ctrl.commissionRates);
+router.get('/payouts', staffOrAgent, requireApprovedKyc, ctrl.listPayouts);
 
 router.patch('/:id/status', authorize('ADMIN', 'SUBADMIN'), ctrl.setStatus);
 router.post('/payouts', authorize('ADMIN', 'SUBADMIN'), ctrl.createPayout);

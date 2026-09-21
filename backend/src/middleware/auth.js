@@ -58,6 +58,17 @@ function authorize(...roles) {
   };
 }
 
+// Blocks an AGENT from downline/earnings features until an admin approves their
+// KYC; ADMIN/SUBADMIN previewing the same endpoints always pass through.
+function requireApprovedKyc(req, res, next) {
+  if (!req.user) return next(ApiError.unauthorized());
+  if (req.user.role !== 'AGENT') return next();
+  if (req.user.kycStatus !== 'APPROVED') {
+    return next(ApiError.forbidden('Complete your KYC verification to access this'));
+  }
+  next();
+}
+
 // Fine-grained permission gate for SUBADMIN; ADMIN always passes.
 function requirePermission(permKey) {
   return (req, res, next) => {
@@ -69,4 +80,4 @@ function requirePermission(permKey) {
   };
 }
 
-module.exports = { authenticate, optionalAuth, authorize, requirePermission };
+module.exports = { authenticate, optionalAuth, authorize, requirePermission, requireApprovedKyc };

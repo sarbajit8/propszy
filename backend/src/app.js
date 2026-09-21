@@ -16,9 +16,24 @@ const app = express();
 
 app.set('trust proxy', 1);
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:5050',
+  'http://127.0.0.1:5050',
+  ...(Array.isArray(env.clientOrigin) ? env.clientOrigin : [env.clientOrigin]),
+];
+
 app.use(
   cors({
-    origin: env.clientOrigin,
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true);
+      const isLocal = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+      if (isLocal || allowedOrigins.includes(origin) || !env.isProd) {
+        return cb(null, true);
+      }
+      return cb(null, true);
+    },
     credentials: true,
   })
 );

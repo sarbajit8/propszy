@@ -3,10 +3,11 @@ import { api, unwrap } from './api';
 
 const list = (path, params) => api.get(path, { params }).then((r) => r.data);
 
-export function useProjects(params) {
+export function useProjects(params, options) {
   return useQuery({
     queryKey: ['projects', params],
     queryFn: () => list('/projects', params),
+    ...options,
   });
 }
 

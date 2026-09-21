@@ -54,6 +54,9 @@ async function createLead(input, { actor } = {}) {
       guestEmail: input.email || null,
       guestAadhaar: input.aadhaar || null,
       guestPan: input.pan || null,
+      // a logged-in customer's phone is already verified on their account; a
+      // guest lead starts unverified and is upgraded once they complete OTP
+      guestPhoneVerified: actor?.role === 'CUSTOMER',
       purpose: input.purpose || null,
       preferredCity: input.preferredCity || null,
       preferredArea: input.preferredArea || null,

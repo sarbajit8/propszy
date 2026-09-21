@@ -28,6 +28,44 @@ export const register = createAsyncThunk('auth/register', async (payload, { reje
   }
 });
 
+export const requestOtp = createAsyncThunk('auth/requestOtp', async (phone, { rejectWithValue }) => {
+  try {
+    const { data } = await api.post('/auth/otp/request', { phone });
+    return data.data;
+  } catch (e) {
+    return rejectWithValue(apiError(e));
+  }
+});
+
+export const verifyOtp = createAsyncThunk('auth/verifyOtp', async (payload, { rejectWithValue }) => {
+  try {
+    const { data } = await api.post('/auth/otp/verify', payload);
+    setAccessToken(data.data.accessToken);
+    return data.data.user;
+  } catch (e) {
+    return rejectWithValue(apiError(e));
+  }
+});
+
+export const requestStaffOtp = createAsyncThunk('auth/requestStaffOtp', async (phone, { rejectWithValue }) => {
+  try {
+    const { data } = await api.post('/auth/staff/otp/request', { phone });
+    return data.data;
+  } catch (e) {
+    return rejectWithValue(apiError(e));
+  }
+});
+
+export const verifyStaffOtp = createAsyncThunk('auth/verifyStaffOtp', async (payload, { rejectWithValue }) => {
+  try {
+    const { data } = await api.post('/auth/staff/otp/verify', payload);
+    setAccessToken(data.data.accessToken);
+    return data.data.user;
+  } catch (e) {
+    return rejectWithValue(apiError(e));
+  }
+});
+
 export const logout = createAsyncThunk('auth/logout', async () => {
   await api.post('/auth/logout');
   setAccessToken(null);
@@ -46,6 +84,8 @@ const slice = createSlice({
     b.addCase(bootstrapAuth.rejected, (s) => { s.user = null; s.ready = true; });
     b.addCase(login.fulfilled, (s, a) => { s.user = a.payload; });
     b.addCase(register.fulfilled, (s, a) => { s.user = a.payload; });
+    b.addCase(verifyOtp.fulfilled, (s, a) => { s.user = a.payload; });
+    b.addCase(verifyStaffOtp.fulfilled, (s, a) => { s.user = a.payload; });
     b.addCase(logout.fulfilled, (s) => { s.user = null; });
   },
 });

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { api, unwrap, apiError } from '../../lib/api';
@@ -78,6 +79,7 @@ const Row = ({ k, v }) => (v ? <div className="flex justify-between gap-3 py-1">
 /* ── page ────────────────────────────────────────────────── */
 export default function AgentKyc() {
   const qc = useQueryClient();
+  const location = useLocation();
   const { data, isLoading } = useQuery({ queryKey: ['kyc-me'], queryFn: () => unwrap(api.get('/kyc/me')) });
   const [step, setStep] = useState(0);
   const [profile, setProfile] = useState(EMPTY_PROFILE);
@@ -154,6 +156,11 @@ export default function AgentKyc() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 pb-16">
+      {location.state?.locked && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-center text-sm text-amber-800">
+          🔒 That part of the associate panel unlocks once your KYC is verified — finish the steps below to get there.
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-bold">Agent KYC &amp; payout</h1>
         <span className={`badge ${STATUS_STYLE[status]}`}>{status.replace('_', ' ')}</span>

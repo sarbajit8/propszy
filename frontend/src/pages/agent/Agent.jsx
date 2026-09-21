@@ -28,7 +28,7 @@ function KycGate() {
           <p className="font-semibold text-slate-900">{copy[0]}</p>
           <p className="mt-1 text-sm text-slate-600">{copy[1]}</p>
         </div>
-        <Link to="/agent/kyc" className="btn-primary">
+        <Link to="/associate/kyc" className="btn-primary">
           {data.status === 'PENDING' ? 'View KYC' : 'Complete KYC'}
         </Link>
       </div>
@@ -126,7 +126,7 @@ export function AgentLeads() {
             <option value="mine">My leads</option>
             <option value="downline">Downline leads</option>
           </select>
-          <Link to="/agent/leads/new" className="btn-primary">+ Add lead</Link>
+          <Link to="/associate/leads/new" className="btn-primary">+ Add lead</Link>
         </div>
       </div>
       <DataTable
@@ -332,7 +332,7 @@ export function AgentRecruit() {
         <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-slate-700">
           <p className="font-medium">Approve your KYC first</p>
           <p className="mt-1 text-slate-600">You can recruit sub-agents once your own KYC is approved.</p>
-          <Link to="/agent/kyc" className="btn-primary mt-3">Go to KYC</Link>
+          <Link to="/associate/kyc" className="btn-primary mt-3">Go to KYC</Link>
         </div>
       </div>
     );

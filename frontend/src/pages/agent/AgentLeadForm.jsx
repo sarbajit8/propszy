@@ -96,7 +96,7 @@ export default function AgentLeadForm() {
     try {
       const lead = await unwrap(api.post('/leads', payload));
       toast.success(`Lead ${lead.code} added`);
-      navigate('/agent/leads');
+      navigate('/associate/leads');
     } catch (err) {
       toast.error(apiError(err));
     } finally {
@@ -113,7 +113,7 @@ export default function AgentLeadForm() {
     <div className="mx-auto max-w-2xl space-y-6 pb-16">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">Add a lead</h1>
-        <Link to="/agent/leads" className="btn-ghost">Cancel</Link>
+        <Link to="/associate/leads" className="btn-ghost">Cancel</Link>
       </div>
 
       <div className="card p-5">

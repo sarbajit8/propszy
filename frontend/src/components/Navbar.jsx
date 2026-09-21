@@ -13,13 +13,13 @@ const nav = [
   { to: '/projects', label: 'Projects' },
   { to: '/properties', label: 'Properties' },
   { to: '/map', label: 'View Map' },
-  { to: '/register?role=agent', label: 'For Agents' },
+  { to: '/register?role=associate', label: 'For Associates' },
   { to: '/blog', label: 'Insights', badge: 'NEW' },
 ];
 
 const dashboardPath = (role) =>
   role === 'ADMIN' || role === 'SUBADMIN' ? '/admin'
-  : role === 'AGENT' ? '/agent'
+  : role === 'AGENT' ? '/associate'
   : '/account';
 
 const CITY_KEY = 'propszy.city';
@@ -159,7 +159,7 @@ export default function Navbar() {
 
         <div className="ml-auto flex items-center gap-1.5">
           <Link
-            to="/register"
+            to="/account/properties/new"
             className={clsx(
               'hidden items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-semibold sm:inline-flex',
               light ? 'border-white/40 text-white hover:bg-white/10' : 'border-slate-300 text-slate-700 hover:bg-slate-50'
@@ -247,8 +247,7 @@ export default function Navbar() {
               </Link>
             ) : (
               <div className="mb-4 flex gap-2">
-                <Link to="/login" className="btn-outline flex-1" onClick={() => setOpen(false)}>Sign in</Link>
-                <Link to="/register" className="btn-primary flex-1" onClick={() => setOpen(false)}>Get started</Link>
+                <Link to="/login" className="btn-primary w-full text-center" onClick={() => setOpen(false)}>Sign in with OTP</Link>
               </div>
             )}
 
@@ -274,7 +273,7 @@ export default function Navbar() {
               </Link>
             </nav>
 
-            <Link to="/register" onClick={() => setOpen(false)}
+            <Link to="/account/properties/new" onClick={() => setOpen(false)}
               className="mt-4 flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
               Post Property
               <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">FREE</span>

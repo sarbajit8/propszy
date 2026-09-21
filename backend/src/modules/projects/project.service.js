@@ -63,6 +63,10 @@ function buildListWhere(query, { publicOnly }) {
     const cities = String(query.city).split(',').map((s) => s.trim()).filter(Boolean);
     where.city = cities.length > 1 ? { in: cities } : { equals: cities[0] };
   }
+  if (query.state) {
+    const states = String(query.state).split(',').map((s) => s.trim()).filter(Boolean);
+    where.state = states.length > 1 ? { in: states } : { equals: states[0] };
+  }
   if (query.type) {
     const types = String(query.type).split(',').filter(Boolean);
     where.type = types.length > 1 ? { in: types } : types[0];
@@ -163,17 +167,23 @@ function buildInventory(props = []) {
   for (const u of props) {
     const key = u.category?.name || guessCategory(u.unitType);
     const g = groups[key] || (groups[key] = { label: key, total: 0, available: 0, priceMin: null, priceMax: null, _cfg: {} });
-    g.total += 1;
-    if (u.status === 'AVAILABLE') g.available += 1;
+    const totUnits = u.totalUnits != null ? u.totalUnits : 1;
+    const availUnits = u.status === 'SOLD' ? 0 : (u.availableUnits != null ? u.availableUnits : 1);
+    g.total += totUnits;
+    g.available += availUnits;
     const price = u.price != null ? Number(u.price) : null;
     if (price != null) {
       g.priceMin = g.priceMin == null ? price : Math.min(g.priceMin, price);
       g.priceMax = g.priceMax == null ? price : Math.max(g.priceMax, price);
     }
-    g._cfg[u.unitType] = (g._cfg[u.unitType] || 0) + 1;
+    g._cfg[u.unitType] = (g._cfg[u.unitType] || 0) + totUnits;
   }
   return Object.values(groups)
-    .map(({ _cfg, ...g }) => ({ ...g, configs: Object.entries(_cfg).map(([label, count]) => ({ label, count })) }))
+    .map(({ _cfg, ...g }) => ({
+      ...g,
+      isSoldOut: g.available <= 0,
+      configs: Object.entries(_cfg).map(([label, count]) => ({ label, count })),
+    }))
     .sort((a, b) => b.total - a.total);
 }
 
@@ -189,7 +199,15 @@ async function getByIdOrSlug(idOrSlug, { publicOnly } = {}) {
         orderBy: { createdAt: 'asc' },
         include: {
           media: { where: { kind: 'IMAGE' }, take: 1, orderBy: { sortOrder: 'asc' } },
-          category: { select: { id: true, name: true, slug: true, parentId: true } },
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              parentId: true,
+              parent: { select: { id: true, name: true, slug: true } },
+            },
+          },
         },
       },
     },
@@ -257,6 +275,7 @@ async function mapPins(query = {}) {
     lng: { not: null },
   };
   if (query.city) where.city = query.city;
+  if (query.state) where.state = query.state;
   if (query.type) where.type = query.type;
   if (query.status) where.status = query.status;
   if (query.featured === 'true') where.isFeatured = true;
@@ -266,6 +285,7 @@ async function mapPins(query = {}) {
       { builder: { contains: query.q } },
       { address: { contains: query.q } },
       { city: { contains: query.q } },
+      { state: { contains: query.q } },
     ];
   }
   const min = query.budgetMin ? Number(query.budgetMin) : undefined;

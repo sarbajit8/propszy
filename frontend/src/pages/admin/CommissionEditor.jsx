@@ -84,7 +84,7 @@ export function CommissionFields({ scheme, onChange, sample, onSample }) {
               <tbody className="divide-y divide-slate-100">
                 {scheme.levels.map((l, i) => (
                   <tr key={i}>
-                    <td className="p-2 font-medium">L{i + 1}{i === 0 ? ' (sourcing agent)' : ` (upline ${i})`}</td>
+                    <td className="p-2 font-medium">L{i + 1}{i === 0 ? ' (sourcing associate)' : ` (upline ${i})`}</td>
                     <td className="p-2">
                       <input className="input h-8 w-20 py-1" type="number" min={0} max={100} value={l.percent}
                         onChange={(e) => setLevel(i, e.target.value)} /> %

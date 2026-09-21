@@ -8,8 +8,9 @@ import { PageLoader } from '../../components/ui';
 import DataTable from '../../components/DataTable';
 import AdminHeroSlider from './AdminHeroSlider';
 
-/* ─────────────── Agents ─────────────── */
+/* ─────────────── Associates (agents) ─────────────── */
 export function AdminAgents() {
+  const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [q, setQ] = useState('');
   const { data, isLoading } = useQuery({
@@ -18,18 +19,27 @@ export function AdminAgents() {
   });
   const [treeFor, setTreeFor] = useState(null);
 
+  const remove = async (r) => {
+    if (!confirm(`Delete associate "${r.name}"? This can't be undone.`)) return;
+    try {
+      await api.delete(`/users/${r.id}`);
+      toast.success('Associate deleted');
+      qc.invalidateQueries({ queryKey: ['admin-agents'] });
+    } catch (e) { toast.error(apiError(e)); }
+  };
+
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold">Agents</h1>
-      <input className="input max-w-xs" placeholder="Search agents…" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
+      <h1 className="text-xl font-bold">Associates</h1>
+      <input className="input max-w-xs" placeholder="Search associates…" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
       <DataTable
         loading={isLoading}
         rows={data?.data}
         meta={data?.meta}
         onPage={setPage}
-        empty="No agents"
+        empty="No associates"
         columns={[
-          { key: 'name', header: 'Agent', render: (r) => (
+          { key: 'name', header: 'Associate', render: (r) => (
             <div><p className="font-medium">{r.name}</p><p className="text-xs text-slate-400">{r.email} · {r.referralCode}</p></div>
           )},
           { key: 'sponsor', header: 'Sponsor', render: (r) => r.sponsorAgent?.name || '—' },
@@ -43,9 +53,60 @@ export function AdminAgents() {
           { key: 'tree', header: '', render: (r) => (
             <button className="text-xs text-brand-700 hover:underline" onClick={() => setTreeFor(r)}>View tree</button>
           )},
+          { key: 'actions', header: '', render: (r) => (
+            <button className="text-xs font-medium text-rose-600 hover:underline" onClick={() => remove(r)}>Delete</button>
+          )},
         ]}
       />
       {treeFor && <AgentTreeModal agent={treeFor} onClose={() => setTreeFor(null)} />}
+    </div>
+  );
+}
+
+/* ─────────────── Customers (users) ─────────────── */
+export function AdminUsers() {
+  const qc = useQueryClient();
+  const [page, setPage] = useState(1);
+  const [q, setQ] = useState('');
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin-users', page, q],
+    queryFn: () => api.get('/users', { params: { role: 'CUSTOMER', page, q, limit: 15 } }).then((r) => r.data),
+  });
+
+  const remove = async (r) => {
+    if (!confirm(`Delete customer "${r.name}"? This can't be undone.`)) return;
+    try {
+      await api.delete(`/users/${r.id}`);
+      toast.success('Customer deleted');
+      qc.invalidateQueries({ queryKey: ['admin-users'] });
+    } catch (e) { toast.error(apiError(e)); }
+  };
+
+  return (
+    <div className="space-y-4">
+      <h1 className="text-xl font-bold">Customers</h1>
+      <input className="input max-w-xs" placeholder="Search customers…" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
+      <DataTable
+        loading={isLoading}
+        rows={data?.data}
+        meta={data?.meta}
+        onPage={setPage}
+        empty="No customers"
+        columns={[
+          { key: 'name', header: 'Customer', render: (r) => (
+            <div><p className="font-medium">{r.name}</p><p className="text-xs text-slate-400">{r.email}{r.phone ? ` · ${r.phone}` : ''}</p></div>
+          )},
+          { key: 'status', header: 'Status', render: (r) => (
+            <span className={`badge ${r.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+              {r.isActive ? 'Active' : 'Disabled'}
+            </span>
+          )},
+          { key: 'joined', header: 'Joined', render: (r) => fromNow(r.createdAt) },
+          { key: 'actions', header: '', render: (r) => (
+            <button className="text-xs font-medium text-rose-600 hover:underline" onClick={() => remove(r)}>Delete</button>
+          )},
+        ]}
+      />
     </div>
   );
 }
@@ -97,8 +158,8 @@ function AgentKycPanel({ agentId, onChange }) {
     catch (e) { toast.error(apiError(e)); }
   };
   const setStatus = async (status) => {
-    const remarks = status === 'REJECTED' ? (prompt('Reason (shown to the agent)?') || '') : '';
-    if (!confirm(`Mark this agent's KYC as ${status}?`)) return;
+    const remarks = status === 'REJECTED' ? (prompt('Reason (shown to the associate)?') || '') : '';
+    if (!confirm(`Mark this associate's KYC as ${status}?`)) return;
     try { await api.patch(`/kyc/agents/${agentId}/status`, { status, remarks }); toast.success(`KYC ${status.toLowerCase()}`); onChange(); }
     catch (e) { toast.error(apiError(e)); }
   };
@@ -159,7 +220,7 @@ export function AdminKyc() {
     queryFn: () => api.get('/kyc', { params: { status: status || undefined } }).then((r) => r.data),
   });
 
-  // group the flat document list into one row per agent
+  // group the flat document list into one row per associate
   const agents = [];
   const seen = new Set();
   (data?.data || []).forEach((doc) => {
@@ -186,7 +247,7 @@ export function AdminKyc() {
       </div>
 
       {isLoading ? <PageLoader /> : agents.length === 0 ? (
-        <div className="card p-10 text-center text-sm text-slate-400">No agents to review here.</div>
+        <div className="card p-10 text-center text-sm text-slate-400">No associates to review here.</div>
       ) : (
         <div className="card divide-y divide-slate-100">
           {agents.map((a) => (
@@ -247,8 +308,8 @@ export function AdminMlm() {
         <p className="font-semibold">How it works</p>
         <p className="mt-1 text-slate-500">
           When a lead is marked <b>Converted</b>, the system resolves that project&apos;s commission base
-          (flat ₹ or % of sale value), then walks the sponsor chain from the sourcing agent — level 1 = the
-          agent, level 2 = their sponsor, and so on — applying each level&apos;s rate below.
+          (flat ₹ or % of sale value), then walks the sponsor chain from the sourcing associate — level 1 = the
+          associate, level 2 = their sponsor, and so on — applying each level&apos;s rate below.
         </p>
         {settings && <p className="mt-2 text-xs text-slate-400">Max depth: {settings.maxDepth} · Payout trigger: {settings.payoutOnStatus}</p>}
       </div>
@@ -344,7 +405,7 @@ export function AdminCommissions() {
         onPage={setPage}
         empty="No commission entries"
         columns={[
-          { key: 'agent', header: 'Agent', render: (r) => r.agent?.name },
+          { key: 'agent', header: 'Associate', render: (r) => r.agent?.name },
           { key: 'lead', header: 'Lead', render: (r) => r.lead?.code },
           { key: 'project', header: 'Project', render: (r) => r.project?.name },
           { key: 'level', header: 'Lvl', render: (r) => `L${r.level}` },
@@ -366,7 +427,7 @@ export function AdminCommissions() {
 /* ─────────────── Reports ─────────────── */
 export function AdminReports() {
   const reports = [
-    ['Leads', '/api/reports/leads.csv', 'All leads with source, agent, status, sale value'],
+    ['Leads', '/api/reports/leads.csv', 'All leads with source, associate, status, sale value'],
     ['Commissions', '/api/reports/commissions.csv', 'Full commission ledger, level-wise'],
     ['Projects', '/api/reports/projects.csv', 'Projects with unit counts, lead counts, commission base'],
   ];
@@ -388,31 +449,170 @@ export function AdminReports() {
 
 /* ─────────────── Properties (flat list) ─────────────── */
 export function AdminProperties() {
+  const qc = useQueryClient();
   const [page, setPage] = useState(1);
+  const [tab, setTab] = useState('all'); // all | pending
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-properties', page],
-    queryFn: () => api.get('/properties', { params: { page, limit: 20 } }).then((r) => r.data),
+    queryKey: ['admin-properties', page, tab],
+    queryFn: () => api.get('/properties', { params: { page, limit: 20, ...(tab === 'pending' ? { pending: true } : {}) } }).then((r) => r.data),
   });
+  const { data: pendingCount } = useQuery({
+    queryKey: ['admin-properties-pending-count'],
+    queryFn: () => api.get('/properties', { params: { pending: true, limit: 1 } }).then((r) => r.data?.meta?.total ?? 0),
+  });
+
+  const remove = async (r) => {
+    if (!confirm(`Delete "${r.name || r.unitType}"? This can't be undone.`)) return;
+    try {
+      await api.delete(`/properties/${r.id}`);
+      toast.success('Property deleted');
+      qc.invalidateQueries({ queryKey: ['admin-properties'] });
+      qc.invalidateQueries({ queryKey: ['admin-properties-pending-count'] });
+    } catch (e) { toast.error(apiError(e)); }
+  };
+
+  const approve = async (r) => {
+    try {
+      await api.patch(`/properties/${r.id}`, { isPublished: true });
+      toast.success('Property approved & published');
+      qc.invalidateQueries({ queryKey: ['admin-properties'] });
+      qc.invalidateQueries({ queryKey: ['admin-properties-pending-count'] });
+    } catch (e) { toast.error(apiError(e)); }
+  };
+
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold">Properties</h1>
-      <p className="text-sm text-slate-500">Units are added and edited from inside each project.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold">Properties</h1>
+          <p className="text-sm text-slate-500">Every listing is added project-wise, with the full Housing.com-style detail flow.</p>
+        </div>
+        <Link to="/admin/properties/new" className="btn-primary shrink-0">+ Add property</Link>
+      </div>
+
+      <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-sm">
+        {[['all', 'All properties'], ['pending', `Pending review${pendingCount ? ` (${pendingCount})` : ''}`]].map(([v, l]) => (
+          <button key={v} onClick={() => { setTab(v); setPage(1); }}
+            className={`rounded-md px-3 py-1.5 font-medium ${tab === v ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>
+            {l}
+          </button>
+        ))}
+      </div>
+
       <DataTable
         loading={isLoading}
         rows={data?.data}
         meta={data?.meta}
         onPage={setPage}
-        empty="No units yet"
+        empty={tab === 'pending' ? 'Nothing pending review — all caught up.' : 'No units yet'}
         columns={[
-          { key: 'unitType', header: 'Unit' },
+          { key: 'unitType', header: 'Property', render: (r) => (
+            <Link to={`/admin/properties/${r.id}`} className="font-medium text-brand-700 hover:underline">{r.name || r.unitType}</Link>
+          )},
           { key: 'project', header: 'Project', render: (r) => (
-            <Link to={`/admin/projects/${r.project?.id}`} className="text-brand-700 hover:underline">{r.project?.name}</Link>
+            r.project
+              ? <Link to={`/admin/projects/${r.project.id}`} className="text-brand-700 hover:underline">{r.project.name}</Link>
+              : <span className="text-slate-400">Standalone</span>
+          )},
+          { key: 'owner', header: 'Owner', render: (r) => (
+            r.createdBy
+              ? <span className="badge bg-amber-50 text-amber-700" title={r.createdBy.phone || r.createdBy.email}>{r.createdBy.name} (customer)</span>
+              : <span className="text-slate-400">Admin</span>
+          )},
+          { key: 'publish', header: 'Visibility', render: (r) => (
+            r.projectId
+              ? <span className={`badge ${r.project?.isPublished ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>{r.project?.isPublished ? 'Live' : 'Project unpublished'}</span>
+              : <span className={`badge ${r.isPublished ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>{r.isPublished ? 'Live' : 'Pending review'}</span>
           )},
           { key: 'price', header: 'Price', render: (r) => inr(r.price) },
           { key: 'area', header: 'Area', render: (r) => r.carpetArea ? `${r.carpetArea} ${r.areaUnit || 'sqft'}` : '—' },
-          { key: 'status', header: 'Status', render: (r) => <span className="badge bg-slate-100 text-slate-600">{r.status}</span> },
+          { key: 'stock', header: 'Stock', render: (r) => {
+            const isSold = r.status === 'SOLD' || (r.availableUnits != null && r.availableUnits <= 0);
+            return isSold ? (
+              <span className="badge bg-rose-100 font-bold text-rose-700">0 / {r.totalUnits || 1} (Sold)</span>
+            ) : (
+              <span className="badge bg-emerald-50 font-semibold text-emerald-700">
+                {r.availableUnits ?? 1} / {r.totalUnits ?? 1} avail
+              </span>
+            );
+          }},
+          { key: 'status', header: 'Status', render: (r) => {
+            const isSold = r.status === 'SOLD' || (r.availableUnits != null && r.availableUnits <= 0);
+            return isSold ? (
+              <span className="badge bg-rose-600 font-extrabold text-white">SOLD OUT</span>
+            ) : (
+              <span className="badge bg-slate-100 text-slate-600">{r.status}</span>
+            );
+          }},
+          { key: 'actions', header: '', render: (r) => (
+            <div className="flex gap-2 text-xs">
+              <a href={`/properties/${r.id}`} target="_blank" rel="noreferrer" className="text-slate-500 hover:underline">View</a>
+              {!r.projectId && !r.isPublished && (
+                <button onClick={() => approve(r)} className="font-semibold text-emerald-600 hover:underline">
+                  {r.createdBy ? 'Approve & publish' : 'Publish'}
+                </button>
+              )}
+              <Link to={`/admin/properties/${r.id}`} className="text-brand-700 hover:underline">Edit</Link>
+              <button onClick={() => remove(r)} className="text-rose-600 hover:underline">Delete</button>
+            </div>
+          )},
         ]}
       />
+    </div>
+  );
+}
+
+/* ─────────────── Wishlists (by customer) ─────────────── */
+export function AdminWishlists() {
+  const { data, isLoading } = useQuery({ queryKey: ['admin-wishlists'], queryFn: () => unwrap(api.get('/favorites/admin')) });
+  const [openId, setOpenId] = useState(null);
+  if (isLoading) return <PageLoader />;
+  const groups = data || [];
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-xl font-bold">Wishlists</h1>
+        <p className="text-sm text-slate-500">Every customer's saved projects &amp; units, grouped by user.</p>
+      </div>
+
+      {!groups.length ? (
+        <p className="card p-6 text-center text-sm text-slate-400">No one has saved anything yet.</p>
+      ) : (
+        <div className="card divide-y divide-slate-100">
+          {groups.map((g) => {
+            const open = openId === g.user.id;
+            return (
+              <div key={g.user.id}>
+                <button type="button" onClick={() => setOpenId(open ? null : g.user.id)}
+                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50">
+                  <div>
+                    <p className="text-sm font-semibold">{g.user.name}</p>
+                    <p className="text-xs text-slate-400">{g.user.phone || g.user.email}</p>
+                  </div>
+                  <span className="badge bg-brand-50 text-brand-700">{g.items.length} saved</span>
+                </button>
+                {open && (
+                  <div className="divide-y divide-slate-50 bg-slate-50 px-4">
+                    {g.items.map((it) => (
+                      <div key={it.id} className="flex items-center justify-between py-2 text-sm">
+                        {it.project ? (
+                          <Link to={`/admin/projects/${it.project.id}`} className="text-brand-700 hover:underline">{it.project.name} · {it.project.city}</Link>
+                        ) : it.property ? (
+                          <Link to={`/admin/properties/${it.property.id}`} className="text-brand-700 hover:underline">
+                            {it.property.name || it.property.unitType}{it.property.project ? ` · ${it.property.project.name}` : ''}
+                          </Link>
+                        ) : <span className="text-slate-400">Removed listing</span>}
+                        <span className="text-xs text-slate-400">{fromNow(it.createdAt)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

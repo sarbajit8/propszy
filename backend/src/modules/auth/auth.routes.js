@@ -17,4 +17,13 @@ router.get('/me', authenticate, ctrl.me);
 router.post('/forgot-password', tight, validate(v.forgotSchema), ctrl.forgotPassword);
 router.post('/reset-password', tight, validate(v.resetSchema), ctrl.resetPassword);
 
+const otpLimit = rateLimit({ windowMs: 60_000, max: 5, standardHeaders: true, legacyHeaders: false });
+router.post('/otp/request', otpLimit, validate(v.otpRequestSchema), ctrl.requestOtp);
+router.post('/otp/verify', otpLimit, validate(v.otpVerifySchema), ctrl.verifyOtp);
+
+// agent/staff mobile-OTP register + login — a separate account space from the
+// customer OTP flow above (see auth.service.requestStaffOtp/verifyStaffOtp)
+router.post('/staff/otp/request', otpLimit, validate(v.otpRequestSchema), ctrl.requestStaffOtp);
+router.post('/staff/otp/verify', otpLimit, validate(v.otpVerifySchema), ctrl.verifyStaffOtp);
+
 module.exports = router;

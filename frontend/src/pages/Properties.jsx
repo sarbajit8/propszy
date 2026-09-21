@@ -70,6 +70,12 @@ export default function Properties() {
   const chips = useMemo(() => {
     const c = [];
     if (query.unitType) c.push(['unitType', `“${query.unitType}”`, () => setParam('unitType', '')]);
+    if (query.category) c.push(['category', `${query.category}`, () => setParam('category', '')]);
+    if (query.type) c.push(['type', `${query.type}`, () => setParam('type', '')]);
+    if (query.intent || query.listingIntent) {
+      const it = (query.intent || query.listingIntent).toUpperCase();
+      c.push(['intent', it === 'RENT' ? 'For Rent' : it === 'PG' ? 'PG' : 'For Sale', () => { setParam('intent', ''); setParam('listingIntent', ''); }]);
+    }
     csv('bedrooms').forEach((b) => c.push([`bed:${b}`, `${b} BHK`, () => toggleCsv('bedrooms', b)]));
     csv('status').forEach((s) => c.push([`st:${s}`, STATUS_LABEL[s] || s, () => toggleCsv('status', s)]));
     csv('city').forEach((x) => c.push([`city:${x}`, x, () => toggleCsv('city', x)]));
@@ -224,7 +230,7 @@ export default function Properties() {
 
         <div className="min-w-0">
           {isLoading ? (
-            <div className={view === 'list' ? 'space-y-3' : 'grid gap-6 sm:grid-cols-2 xl:grid-cols-3'}>
+            <div className={view === 'list' ? 'space-y-3' : 'grid grid-cols-2 gap-3 sm:gap-6'}>
               {Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} />)}
             </div>
           ) : rows.length === 0 ? (
@@ -232,7 +238,7 @@ export default function Properties() {
               action={filterCount ? <button className="btn-outline mt-2" onClick={clearAll}>Clear all filters</button> : null} />
           ) : (
             <>
-              <div className={`${isFetching ? 'opacity-60 transition' : ''} ${view === 'list' ? 'space-y-3' : 'grid gap-6 sm:grid-cols-2 xl:grid-cols-3'}`}>
+              <div className={`${isFetching ? 'opacity-60 transition' : ''} ${view === 'list' ? 'space-y-3' : 'grid grid-cols-2 gap-3 sm:gap-6'}`}>
                 {rows.map((u) => <PropertyCard key={u.id} property={u} variant={view} />)}
               </div>
 

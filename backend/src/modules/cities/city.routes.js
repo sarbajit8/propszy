@@ -16,6 +16,7 @@ const bodySchema = z.object({
   lng: z.coerce.number().optional(),
   isActive: z.boolean().optional(),
   isPopular: z.boolean().optional(),
+  isFeatured: z.boolean().optional(),
   sortOrder: z.coerce.number().int().optional(),
 });
 

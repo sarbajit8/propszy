@@ -10,8 +10,15 @@ const MASK = '••••••••'; // server placeholder for a stored secr
 // How each group renders: label + per-field control hints
 const FIELD_META = {
   'integrations.googleMaps': {
-    hint: 'Maps JavaScript API + Places + Geocoding. Restrict the key by HTTP referrer in Google Cloud Console.',
-    fields: { apiKey: { label: 'API key', type: 'text', wide: true } },
+    hint: 'Maps JavaScript API key, default state/city selection, and center coordinates for the Map page.',
+    fields: {
+      apiKey: { label: 'Google Maps API key', type: 'text', wide: true },
+      defaultCity: { label: 'Default Map City', placeholder: 'Kolkata', hint: 'Default city selected in map view' },
+      defaultState: { label: 'Default Map State', placeholder: 'West Bengal', hint: 'Default state selected in map view' },
+      defaultLat: { label: 'Default Center Latitude', type: 'number', placeholder: '22.5726' },
+      defaultLng: { label: 'Default Center Longitude', type: 'number', placeholder: '88.3639' },
+      defaultZoom: { label: 'Default Zoom Level (1-20)', type: 'number', placeholder: '11' },
+    },
   },
   'integrations.smtp': {
     hint: 'Used for enquiry alerts, KYC/commission notifications and password resets.',
@@ -33,6 +40,18 @@ const FIELD_META = {
       apiKey: { label: 'API key', type: 'password' },
       senderId: { label: 'Sender ID' },
       whatsappApiUrl: { label: 'WhatsApp / send URL', wide: true },
+    },
+  },
+  'integrations.otp': {
+    hint: 'Powers mobile OTP login/registration via apitxt.com\'s Unified OTP API (SMS / WhatsApp / Voice).',
+    fields: {
+      enabled: { label: 'Enabled', type: 'checkbox' },
+      authkey: { label: 'Auth key', type: 'password', wide: true },
+      channel: { label: 'Channel', type: 'select', options: ['sms', 'whatsapp', 'voice'] },
+      country: { label: 'Country code', placeholder: '91' },
+      templateId: { label: 'SMS template id (optional)' },
+      templateName: { label: 'WhatsApp template name (optional)' },
+      projectRefId: { label: 'WhatsApp project ref id (optional)' },
     },
   },
   'integrations.storage': {
@@ -58,6 +77,30 @@ const FIELD_META = {
       supportEmail: { label: 'Support email' },
       supportPhone: { label: 'Support phone' },
       primaryColor: { label: 'Primary color', type: 'color' },
+    },
+  },
+  'pages.customerAuth': {
+    hint: 'The mobile-OTP sign-in / sign-up page customers see at /login.',
+    fields: {
+      heroImage: { label: 'Hero photo', type: 'image', folder: 'pages', aspect: 'aspect-[16/9]', wide: true },
+      badge: { label: 'Badge text', placeholder: 'Trusted Real Estate Platform' },
+      heading1: { label: 'Heading line 1', placeholder: 'Better Homes' },
+      heading2: { label: 'Heading line 2 (accent color)', placeholder: 'Brighter Futures' },
+      blurb: { label: 'Blurb', type: 'textarea', wide: true },
+      cardTitle: { label: 'Floating card title', placeholder: 'Find Your Dream Home' },
+      cardSubtitle: { label: 'Floating card subtitle', placeholder: 'Apartments · Villas · Plots · Commercial' },
+    },
+  },
+  'pages.agentAuth': {
+    hint: 'The associate sign-up page at /register?role=associate.',
+    fields: {
+      heroImage: { label: 'Hero photo', type: 'image', folder: 'pages', aspect: 'aspect-[16/9]', wide: true },
+      badge: { label: 'Badge text', placeholder: 'Partner Programme' },
+      heading1: { label: 'Heading line 1', placeholder: 'Earn as a' },
+      heading2: { label: 'Heading line 2 (accent color)', placeholder: 'Propszy Associate.' },
+      blurb: { label: 'Blurb', type: 'textarea', wide: true },
+      cardTitle: { label: 'Floating card title', placeholder: 'Every sale, rewarded' },
+      cardSubtitle: { label: 'Floating card subtitle', placeholder: 'Track pending & paid commission live' },
     },
   },
 };
@@ -170,6 +213,18 @@ export default function AdminSettings() {
                           {val && <button type="button" className="mt-1 text-xs text-rose-600 hover:underline" onClick={() => setField(groupKey, field, '')}>Remove — use default</button>}
                         </div>
                       </div>
+                    ) : fm.type === 'image' ? (
+                      <div>
+                        <ImageUpload value={val} folder={fm.folder || 'pages'} aspect={fm.aspect || 'aspect-[16/9]'} onChange={(url) => setField(groupKey, field, url)} />
+                        {val && <button type="button" className="mt-1 text-xs text-rose-600 hover:underline" onClick={() => setField(groupKey, field, '')}>Remove — use default</button>}
+                      </div>
+                    ) : fm.type === 'textarea' ? (
+                      <textarea
+                        className={`${common} min-h-[80px]`}
+                        value={val}
+                        placeholder={fm.placeholder}
+                        onChange={(e) => setField(groupKey, field, e.target.value)}
+                      />
                     ) : (
                       <input
                         className={common}

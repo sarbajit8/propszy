@@ -61,4 +61,31 @@ const resetPassword = asyncHandler(async (req, res) => {
   return ok(res, { message: 'Password updated. Please sign in.' });
 });
 
-module.exports = { register, login, refresh, logout, me, forgotPassword, resetPassword };
+const requestOtp = asyncHandler(async (req, res) => {
+  const result = await svc.requestOtp(req.body.phone);
+  return ok(res, { message: 'OTP sent', ...result });
+});
+
+const verifyOtp = asyncHandler(async (req, res) => {
+  const session = await svc.verifyOtp(req.body, ctxOf(req));
+  setRefreshCookie(res, session.refreshToken);
+  logActivity({ ...req, user: { id: session.user.id } }, { action: 'auth.otp_login' });
+  return ok(res, { user: session.user, accessToken: session.accessToken });
+});
+
+const requestStaffOtp = asyncHandler(async (req, res) => {
+  const result = await svc.requestStaffOtp(req.body.phone);
+  return ok(res, { message: 'OTP sent', ...result });
+});
+
+const verifyStaffOtp = asyncHandler(async (req, res) => {
+  const session = await svc.verifyStaffOtp(req.body, ctxOf(req));
+  setRefreshCookie(res, session.refreshToken);
+  logActivity({ ...req, user: { id: session.user.id } }, { action: 'auth.staff_otp_login' });
+  return ok(res, { user: session.user, accessToken: session.accessToken });
+});
+
+module.exports = {
+  register, login, refresh, logout, me, forgotPassword, resetPassword,
+  requestOtp, verifyOtp, requestStaffOtp, verifyStaffOtp,
+};

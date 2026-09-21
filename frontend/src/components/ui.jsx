@@ -36,8 +36,8 @@ const statusStyles = {
   ON_HOLD: 'bg-slate-200 text-slate-600',
 };
 
-export function StatusBadge({ status, label }) {
-  return <span className={clsx('badge', statusStyles[status] || 'bg-slate-100 text-slate-600')}>{label || status}</span>;
+export function StatusBadge({ status, label, className = '' }) {
+  return <span className={clsx('badge shrink-0 whitespace-nowrap', statusStyles[status] || 'bg-slate-100 text-slate-600', className)}>{label || status}</span>;
 }
 
 export function Skeleton({ className }) {

@@ -6,8 +6,18 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': { target: 'http://localhost:5050', changeOrigin: true },
-      '/uploads': { target: 'http://localhost:5050', changeOrigin: true },
+      '/api': {
+        target: 'http://localhost:5050',
+        changeOrigin: true,
+        timeout: 600000,
+        proxyTimeout: 600000,
+      },
+      '/uploads': {
+        target: 'http://localhost:5050',
+        changeOrigin: true,
+        timeout: 600000,
+        proxyTimeout: 600000,
+      },
     },
   },
 });

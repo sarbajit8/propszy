@@ -50,10 +50,13 @@ export default function AdminLeads() {
             <div>
               <p>{r.user?.name || r.guestName || '—'}</p>
               <p className="text-xs text-slate-400">{r.guestPhone || r.user?.phone || r.guestEmail || ''}</p>
+              {!r.guestPhoneVerified && (r.guestPhone || r.user?.phone) && (
+                <span className="mt-0.5 inline-block rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">Mobile not verified</span>
+              )}
             </div>
           )},
           { key: 'project', header: 'Project', render: (r) => r.project?.name },
-          { key: 'agent', header: 'Agent', render: (r) => r.agent?.name || '—' },
+          { key: 'agent', header: 'Associate', render: (r) => r.agent?.name || '—' },
           { key: 'source', header: 'Source' },
           { key: 'status', header: 'Status', render: (r) => <span className="badge bg-brand-50 text-brand-700">{r.statusKey}</span> },
           { key: 'created', header: 'Age', render: (r) => fromNow(r.createdAt) },
@@ -117,7 +120,12 @@ function LeadDrawer({ id, statuses, onClose, onChange }) {
 
             <div className="card p-3 text-sm">
               <p><b>{lead.user?.name || lead.guestName || '—'}</b></p>
-              <p className="text-slate-500">{lead.guestPhone || lead.user?.phone || '—'} · {lead.guestEmail || lead.user?.email || '—'}</p>
+              <p className="flex flex-wrap items-center gap-1.5 text-slate-500">
+                <span>{lead.guestPhone || lead.user?.phone || '—'} · {lead.guestEmail || lead.user?.email || '—'}</span>
+                {!lead.guestPhoneVerified && (lead.guestPhone || lead.user?.phone) && (
+                  <span className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">Mobile not verified</span>
+                )}
+              </p>
               {(lead.guestAadhaar || lead.guestPan) && (
                 <p className="mt-1 text-xs text-slate-400">
                   {lead.guestAadhaar ? `Aadhaar ${lead.guestAadhaar}` : ''}{lead.guestAadhaar && lead.guestPan ? ' · ' : ''}{lead.guestPan ? `PAN ${lead.guestPan}` : ''}

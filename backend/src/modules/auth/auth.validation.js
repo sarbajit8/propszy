@@ -38,4 +38,23 @@ const resetSchema = {
   }),
 };
 
-module.exports = { registerSchema, loginSchema, forgotSchema, resetSchema };
+const phone = z.string().trim().min(7, 'Enter a valid mobile number').max(20);
+
+const otpRequestSchema = {
+  body: z.object({ phone }),
+};
+
+const otpVerifySchema = {
+  body: z.object({
+    phone,
+    otp: z.string().trim().length(6, 'Enter the 6-digit code'),
+    name: optional(z.string().min(2).max(120)),
+    email: optional(z.string().trim().toLowerCase().email('Enter a valid email address')),
+    referralCode: optional(z.string().min(4).max(20)),
+    // an enquiry submitted before OTP verification — link it to this account and
+    // mark its phone verified once the code checks out (see auth.service.verifyOtp)
+    leadId: optional(z.string()),
+  }),
+};
+
+module.exports = { registerSchema, loginSchema, forgotSchema, resetSchema, otpRequestSchema, otpVerifySchema };

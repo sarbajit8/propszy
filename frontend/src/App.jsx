@@ -2,12 +2,15 @@ import { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { bootstrapAuth, selectAuthReady } from './features/auth/authSlice';
-import { RequireAuth, GuestOnly } from './routes/guards';
+import { RequireAuth, RequireKyc, GuestOnly } from './routes/guards';
 import { Spinner } from './components/ui';
 import { usePublicConfig, applyRuntimeConfig } from './lib/publicConfig';
+import ErrorBoundary from './components/ErrorBoundary';
+import ScrollToTop from './components/ScrollToTop';
 
 import PublicLayout from './components/PublicLayout';
 import DashboardLayout from './components/DashboardLayout';
+import AccountLayout from './components/AccountLayout';
 
 import Home from './pages/Home';
 import Projects from './pages/Projects';
@@ -22,10 +25,12 @@ import BecomeAgent from './pages/BecomeAgent';
 import NotFound from './pages/NotFound';
 
 import Login from './pages/auth/Login';
+import AdminLogin from './pages/auth/AdminLogin';
+import AgentLogin from './pages/auth/AgentLogin';
 import Register from './pages/auth/Register';
 import { ForgotPassword, ResetPassword } from './pages/auth/ForgotPassword';
 
-import { AccountOverview, Favorites, Enquiries, Activity } from './pages/account/Account';
+import { AccountOverview, Favorites, Enquiries, Activity, MyProperties } from './pages/account/Account';
 import Profile from './pages/account/Profile';
 
 import { AgentOverview, AgentLeads, AgentCommissions, AgentRecruit } from './pages/agent/Agent';
@@ -37,6 +42,7 @@ import AgentKyc from './pages/agent/AgentKyc';
 import AdminOverview from './pages/admin/AdminOverview';
 import AdminProjects from './pages/admin/AdminProjects';
 import AdminProjectForm from './pages/admin/AdminProjectForm';
+import AdminPropertyForm from './pages/admin/AdminPropertyForm';
 import AdminLeads from './pages/admin/AdminLeads';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminHome from './pages/admin/AdminHome';
@@ -46,7 +52,7 @@ import AdminCategories from './pages/admin/AdminCategories';
 import AdminBlog from './pages/admin/AdminBlog';
 import AdminConfigurations from './pages/admin/AdminConfigurations';
 import {
-  AdminAgents, AdminKyc, AdminMlm, AdminCommissions, AdminReports, AdminProperties, AdminCms,
+  AdminAgents, AdminUsers, AdminKyc, AdminMlm, AdminCommissions, AdminReports, AdminProperties, AdminCms, AdminWishlists,
 } from './pages/admin/AdminMisc';
 
 const STAFF = ['ADMIN', 'SUBADMIN'];
@@ -68,7 +74,9 @@ export default function App() {
   }
 
   return (
-    <Routes>
+    <ErrorBoundary>
+      <ScrollToTop />
+      <Routes>
       {/* Public */}
       <Route element={<PublicLayout />}>
         <Route path="/" element={<Home />} />
@@ -80,33 +88,38 @@ export default function App() {
         <Route path="/blog" element={<Blog />} />
         <Route path="/blog/:slug" element={<BlogPost />} />
         <Route path="/wishlist" element={<RequireAuth><Wishlist /></RequireAuth>} />
-        <Route path="/become-agent" element={<BecomeAgent />} />
+        <Route path="/become-associate" element={<BecomeAgent />} />
       </Route>
 
       {/* Auth */}
       <Route path="/login" element={<GuestOnly><Login /></GuestOnly>} />
+      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/associate/login" element={<AgentLogin />} />
       <Route path="/register" element={<GuestOnly><Register /></GuestOnly>} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* Customer */}
-      <Route path="/account" element={<RequireAuth><DashboardLayout area="account" /></RequireAuth>}>
+      <Route path="/account" element={<RequireAuth><AccountLayout /></RequireAuth>}>
         <Route index element={<AccountOverview />} />
         <Route path="favorites" element={<Favorites />} />
+        <Route path="properties" element={<MyProperties />} />
+        <Route path="properties/new" element={<AdminPropertyForm />} />
+        <Route path="properties/:id" element={<AdminPropertyForm />} />
         <Route path="enquiries" element={<Enquiries />} />
         <Route path="activity" element={<Activity />} />
         <Route path="profile" element={<Profile />} />
       </Route>
 
-      {/* Agent */}
-      <Route path="/agent" element={<RequireAuth roles={['AGENT', 'ADMIN']}><DashboardLayout area="agent" /></RequireAuth>}>
-        <Route index element={<AgentOverview />} />
-        <Route path="tree" element={<AgentTree />} />
-        <Route path="leads" element={<AgentLeads />} />
-        <Route path="leads/new" element={<AgentLeadForm />} />
-        <Route path="rates" element={<AgentRates />} />
-        <Route path="commissions" element={<AgentCommissions />} />
-        <Route path="recruit" element={<AgentRecruit />} />
+      {/* Associate (agent) */}
+      <Route path="/associate" element={<RequireAuth roles={['AGENT', 'ADMIN']}><DashboardLayout area="associate" /></RequireAuth>}>
+        <Route index element={<RequireKyc><AgentOverview /></RequireKyc>} />
+        <Route path="tree" element={<RequireKyc><AgentTree /></RequireKyc>} />
+        <Route path="leads" element={<RequireKyc><AgentLeads /></RequireKyc>} />
+        <Route path="leads/new" element={<RequireKyc><AgentLeadForm /></RequireKyc>} />
+        <Route path="rates" element={<RequireKyc><AgentRates /></RequireKyc>} />
+        <Route path="commissions" element={<RequireKyc><AgentCommissions /></RequireKyc>} />
+        <Route path="recruit" element={<RequireKyc><AgentRecruit /></RequireKyc>} />
         <Route path="kyc" element={<AgentKyc />} />
       </Route>
 
@@ -117,8 +130,11 @@ export default function App() {
         <Route path="projects/new" element={<AdminProjectForm />} />
         <Route path="projects/:id" element={<AdminProjectForm />} />
         <Route path="properties" element={<AdminProperties />} />
+        <Route path="properties/new" element={<AdminPropertyForm />} />
+        <Route path="properties/:id" element={<AdminPropertyForm />} />
         <Route path="leads" element={<AdminLeads />} />
-        <Route path="agents" element={<AdminAgents />} />
+        <Route path="associates" element={<AdminAgents />} />
+        <Route path="customers" element={<AdminUsers />} />
         <Route path="kyc" element={<AdminKyc />} />
         <Route path="mlm" element={<AdminMlm />} />
         <Route path="commissions" element={<AdminCommissions />} />
@@ -129,6 +145,7 @@ export default function App() {
         <Route path="developers" element={<AdminDevelopers />} />
         <Route path="categories" element={<AdminCategories />} />
         <Route path="configurations" element={<AdminConfigurations />} />
+        <Route path="wishlists" element={<AdminWishlists />} />
         <Route path="settings" element={<AdminSettings />} />
         <Route path="reports" element={<AdminReports />} />
       </Route>
@@ -136,5 +153,6 @@ export default function App() {
       <Route path="/404" element={<NotFound />} />
       <Route path="*" element={<Navigate to="/404" replace />} />
     </Routes>
+    </ErrorBoundary>
   );
 }

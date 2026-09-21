@@ -13,6 +13,8 @@ const {
 } = require('../../utils/tokens');
 const { env } = require('../../config/env');
 const { sendMail } = require('../../services/mailer');
+const { sendOtpSms } = require('../../services/otpProvider');
+const { notify } = require('../../services/notify');
 
 const refCode = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 8);
 
@@ -181,6 +183,223 @@ async function resetPassword({ email, token, password }) {
   ]);
 }
 
+async function requestOtp(phone) {
+  const oneMinAgo = new Date(Date.now() - 60 * 1000);
+  const recent = await prisma.otpCode.count({
+    where: { target: phone, channel: 'sms', createdAt: { gt: oneMinAgo } },
+  });
+  if (recent >= 3) throw ApiError.badRequest('Too many OTP requests — please wait a minute and try again');
+
+  const otp = String(crypto.randomInt(100000, 1000000));
+  const user = await prisma.user.findUnique({ where: { phone } });
+  // customer OTP sign-in/sign-up is a separate account space from staff/agent
+  // accounts — never let it reach into an existing ADMIN/SUBADMIN/AGENT account
+  if (user && user.role !== 'CUSTOMER') {
+    throw ApiError.badRequest('This number belongs to a staff/agent account — please use the staff sign-in page.');
+  }
+  await prisma.otpCode.create({
+    data: {
+      userId: user?.id || null,
+      channel: 'sms',
+      target: phone,
+      codeHash: sha256(otp),
+      purpose: user ? 'LOGIN' : 'REGISTER',
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+    },
+  });
+
+  const sent = await sendOtpSms(phone, otp);
+  if (!sent.ok && !sent.skipped) throw ApiError.badRequest('Could not send OTP right now — please try again shortly');
+  return { sent: true, isNewUser: !user };
+}
+
+async function verifyOtp({ phone, otp, name, email, referralCode, leadId }, ctx) {
+  const record = await prisma.otpCode.findFirst({
+    where: {
+      target: phone,
+      channel: 'sms',
+      purpose: { in: ['LOGIN', 'REGISTER'] },
+      consumedAt: null,
+      expiresAt: { gt: new Date() },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+  if (!record) throw ApiError.badRequest('Code has expired — please request a new one');
+  if (record.attempts >= 5) throw ApiError.badRequest('Too many attempts — please request a new code');
+
+  if (record.codeHash !== sha256(otp)) {
+    await prisma.otpCode.update({ where: { id: record.id }, data: { attempts: { increment: 1 } } });
+    throw ApiError.badRequest('Incorrect code');
+  }
+
+  let user = await prisma.user.findUnique({ where: { phone } });
+  // same guard as requestOtp — never let this flow sign someone into a staff/agent account
+  if (user && user.role !== 'CUSTOMER') {
+    throw ApiError.badRequest('This number belongs to a staff/agent account — please use the staff sign-in page.');
+  }
+  // check this before burning the code, so a first-time signup that forgot
+  // their name can just fill it in and resubmit without needing a fresh OTP
+  if (!user && !name?.trim()) throw ApiError.badRequest('Please enter your name');
+
+  await prisma.otpCode.update({ where: { id: record.id }, data: { consumedAt: new Date() } });
+
+  if (!user) {
+    let sponsorAgentId = null;
+    if (referralCode) {
+      const sponsor = await prisma.user.findUnique({ where: { referralCode } });
+      if (sponsor && (sponsor.role === 'AGENT' || sponsor.role === 'ADMIN')) sponsorAgentId = sponsor.id;
+    }
+
+    let finalEmail = `${phone.replace(/\D/g, '')}@phone.propszy.local`;
+    if (email) {
+      const emailTaken = await prisma.user.findUnique({ where: { email } });
+      if (emailTaken) throw ApiError.conflict('That email is already registered');
+      finalEmail = email;
+    }
+
+    user = await prisma.user.create({
+      data: {
+        name: name.trim(),
+        email: finalEmail,
+        phone,
+        role: 'CUSTOMER',
+        phoneVerified: true,
+        emailVerified: false,
+        sponsorAgentId,
+      },
+    });
+  } else if (!user.phoneVerified) {
+    user = await prisma.user.update({ where: { id: user.id }, data: { phoneVerified: true } });
+  }
+  if (!user.isActive) throw ApiError.forbidden('Account disabled');
+
+  // link a pre-OTP enquiry to the now-verified account, same phone only
+  if (leadId) {
+    const lead = await prisma.lead.findUnique({ where: { id: leadId }, select: { id: true, guestPhone: true } });
+    if (lead && lead.guestPhone === phone) {
+      await prisma.lead.update({ where: { id: leadId }, data: { userId: user.id, guestPhoneVerified: true } });
+    }
+  }
+
+  return issueSession(user, ctx);
+}
+
+// Agent OTP is its own space, separate from both the customer OTP flow and the
+// password-only admin console: a phone already on a CUSTOMER account must sign
+// in from the main site (and use "Become an agent" there to upgrade) rather than
+// re-registering here, and a phone on an ADMIN/SUBADMIN account belongs on the
+// separate admin sign-in page — agents are mobile-OTP-only, admins are
+// password-only, by design.
+function assertAgentPhone(user) {
+  if (!user) return;
+  if (user.role === 'CUSTOMER') {
+    throw ApiError.badRequest('This number belongs to a customer account — please sign in from the main site.');
+  }
+  if (user.role === 'ADMIN' || user.role === 'SUBADMIN') {
+    throw ApiError.badRequest('This number belongs to an admin account — please use the admin sign-in page.');
+  }
+}
+
+async function requestStaffOtp(phone) {
+  const oneMinAgo = new Date(Date.now() - 60 * 1000);
+  const recent = await prisma.otpCode.count({
+    where: { target: phone, channel: 'sms', createdAt: { gt: oneMinAgo } },
+  });
+  if (recent >= 3) throw ApiError.badRequest('Too many OTP requests — please wait a minute and try again');
+
+  const otp = String(crypto.randomInt(100000, 1000000));
+  const user = await prisma.user.findUnique({ where: { phone } });
+  assertAgentPhone(user);
+  await prisma.otpCode.create({
+    data: {
+      userId: user?.id || null,
+      channel: 'sms',
+      target: phone,
+      codeHash: sha256(otp),
+      purpose: user ? 'LOGIN' : 'REGISTER',
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+    },
+  });
+
+  const sent = await sendOtpSms(phone, otp);
+  if (!sent.ok && !sent.skipped) throw ApiError.badRequest('Could not send OTP right now — please try again shortly');
+  return { sent: true, isNewUser: !user };
+}
+
+async function verifyStaffOtp({ phone, otp, name, email, referralCode }, ctx) {
+  const record = await prisma.otpCode.findFirst({
+    where: {
+      target: phone,
+      channel: 'sms',
+      purpose: { in: ['LOGIN', 'REGISTER'] },
+      consumedAt: null,
+      expiresAt: { gt: new Date() },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+  if (!record) throw ApiError.badRequest('Code has expired — please request a new one');
+  if (record.attempts >= 5) throw ApiError.badRequest('Too many attempts — please request a new code');
+
+  if (record.codeHash !== sha256(otp)) {
+    await prisma.otpCode.update({ where: { id: record.id }, data: { attempts: { increment: 1 } } });
+    throw ApiError.badRequest('Incorrect code');
+  }
+
+  let user = await prisma.user.findUnique({ where: { phone } });
+  assertAgentPhone(user);
+  // check this before burning the code, so a first-time signup that forgot
+  // their name can just fill it in and resubmit without needing a fresh OTP
+  if (!user && !name?.trim()) throw ApiError.badRequest('Please enter your name');
+
+  await prisma.otpCode.update({ where: { id: record.id }, data: { consumedAt: new Date() } });
+
+  if (!user) {
+    let sponsorAgentId = null;
+    if (referralCode) {
+      const sponsor = await prisma.user.findUnique({ where: { referralCode } });
+      if (sponsor && (sponsor.role === 'AGENT' || sponsor.role === 'ADMIN')) sponsorAgentId = sponsor.id;
+    }
+
+    // email is optional for agent sign-up via OTP — fall back to a synthetic,
+    // phone-derived address (same pattern as the customer OTP flow)
+    let finalEmail = `${phone.replace(/\D/g, '')}@phone.propszy.local`;
+    if (email) {
+      const emailTaken = await prisma.user.findUnique({ where: { email } });
+      if (emailTaken) throw ApiError.conflict('That email is already registered');
+      finalEmail = email;
+    }
+
+    user = await prisma.user.create({
+      data: {
+        name: name.trim(),
+        email: finalEmail,
+        phone,
+        role: 'AGENT',
+        kycStatus: 'NOT_SUBMITTED',
+        referralCode: await uniqueReferralCode(),
+        phoneVerified: true,
+        emailVerified: false,
+        sponsorAgentId,
+      },
+    });
+
+    const admins = await prisma.user.findMany({ where: { role: { in: ['ADMIN', 'SUBADMIN'] } }, select: { id: true } });
+    admins.forEach((a) =>
+      notify(a.id, {
+        type: 'agent.apply',
+        title: 'New agent application',
+        body: `${user.name} registered as an agent via mobile OTP.`,
+        email: false,
+      }).catch(() => {})
+    );
+  } else if (!user.phoneVerified) {
+    user = await prisma.user.update({ where: { id: user.id }, data: { phoneVerified: true } });
+  }
+  if (!user.isActive) throw ApiError.forbidden('Account disabled');
+
+  return issueSession(user, ctx);
+}
+
 module.exports = {
   register,
   login,
@@ -188,6 +407,10 @@ module.exports = {
   logout,
   requestPasswordReset,
   resetPassword,
+  requestOtp,
+  verifyOtp,
+  requestStaffOtp,
+  verifyStaffOtp,
   issueSession,
   publicUser,
   uniqueReferralCode,

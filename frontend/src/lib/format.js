@@ -30,6 +30,16 @@ export const TYPE_LABEL = {
   MIXED: 'Mixed-use',
 };
 
+// YouTube/Vimeo URL → an embeddable iframe src, or a raw <video> src as a fallback.
+export function videoEmbed(url) {
+  if (!url) return null;
+  const yt = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{6,})/);
+  if (yt) return { type: 'iframe', src: `https://www.youtube.com/embed/${yt[1]}` };
+  const vimeo = url.match(/vimeo\.com\/(\d+)/);
+  if (vimeo) return { type: 'iframe', src: `https://player.vimeo.com/video/${vimeo[1]}` };
+  return { type: 'video', src: url };
+}
+
 export function fromNow(date) {
   const d = new Date(date);
   const s = Math.floor((Date.now() - d.getTime()) / 1000);

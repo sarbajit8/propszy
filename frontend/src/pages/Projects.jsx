@@ -270,7 +270,7 @@ export default function Projects() {
         {/* results */}
         <div className="min-w-0">
           {isLoading ? (
-            <div className={view === 'list' ? 'space-y-3' : 'grid gap-6 sm:grid-cols-2 xl:grid-cols-3'}>
+            <div className={view === 'list' ? 'space-y-3' : 'grid grid-cols-2 gap-3 sm:gap-6'}>
               {Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} />)}
             </div>
           ) : projects.length === 0 ? (
@@ -281,7 +281,7 @@ export default function Projects() {
             />
           ) : (
             <>
-              <div className={`${isFetching ? 'opacity-60 transition' : ''} ${view === 'list' ? 'space-y-3' : 'grid gap-6 sm:grid-cols-2 xl:grid-cols-3'}`}>
+              <div className={`${isFetching ? 'opacity-60 transition' : ''} ${view === 'list' ? 'space-y-3' : 'grid grid-cols-2 gap-3 sm:gap-6'}`}>
                 {projects.map((p) => <ProjectCard key={p.id} project={p} variant={view} />)}
               </div>
 

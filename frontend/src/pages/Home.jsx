@@ -1,69 +1,95 @@
-import { useState } from 'react';
+import { useRef, useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useHome } from '../lib/queries';
-import { Spinner } from '../components/ui';
+import { useHome, useProjectPins, useCities } from '../lib/queries';
+import { Spinner, StatusBadge } from '../components/ui';
 import ProjectCard from '../components/ProjectCard';
 import PropertyCard from '../components/PropertyCard';
 import Scroller from '../components/Scroller';
 import BlogCard from '../components/BlogCard';
 import HeroSearch from '../components/HeroSearch';
+import MapView from '../components/MapView';
 import { cityImage, cityImageFallback } from '../lib/cityImages';
-import { priceRange } from '../lib/format';
+import { priceRange, STATUS_LABEL, TYPE_LABEL } from '../lib/format';
+
+const MAP_TYPES = ['RESIDENTIAL', 'COMMERCIAL', 'PLOT', 'MIXED'];
+const MAP_STATUSES = ['UPCOMING', 'ONGOING', 'READY_TO_MOVE'];
 
 const enc = encodeURIComponent;
 const truncate = (s = '', n) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 const initials = (s = '') => s.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 
-/* 99acres-style developer card: logo + stats + about + project tabs + image */
+/* Developer card: logo + stats + about + project tabs + featured-project image */
 function DeveloperCard({ dev }) {
   const projects = dev.projects || [];
   const [active, setActive] = useState(0);
   const p = projects[Math.min(active, projects.length - 1)];
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 border-t-[3px] border-t-brand-600 bg-white shadow-sm">
-      <div className="p-4">
-        <div className="flex items-start gap-3">
-          <span className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-lg border border-slate-200 bg-white p-1.5">
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card transition duration-300 hover:-translate-y-0.5 hover:shadow-xl">
+      <div className="p-5">
+        <div className="flex items-center gap-3.5">
+          <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-gradient-to-br from-brand-50 to-brand-100 ring-1 ring-slate-200/70">
             {dev.logoUrl
-              ? <img src={dev.logoUrl} alt="" className="h-full w-full object-contain" />
-              : <span className="text-base font-bold text-brand-700">{initials(dev.name)}</span>}
+              ? <img src={dev.logoUrl} alt="" className="h-full w-full object-contain p-1.5" />
+              : <span className="text-base font-extrabold text-brand-700">{initials(dev.name)}</span>}
           </span>
           <div className="min-w-0 flex-1">
-            <h3 className="truncate font-bold text-slate-900">{dev.name}</h3>
-            <div className="mt-1.5 flex gap-6">
+            <h3 className="truncate text-[15px] font-bold text-slate-900">{dev.name}</h3>
+            <div className="mt-1.5 flex items-center gap-3">
               {dev.foundedYear && (
-                <div><p className="text-sm font-bold text-slate-900">{dev.foundedYear}</p><p className="text-[11px] text-slate-400">Year estd.</p></div>
+                <>
+                  <span className="text-sm font-bold text-slate-900">
+                    {dev.foundedYear}
+                    <span className="ml-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">Est.</span>
+                  </span>
+                  <span className="h-3 w-px bg-slate-200" />
+                </>
               )}
-              <div><p className="text-sm font-bold text-slate-900">{dev.projectCount ?? dev.count}</p><p className="text-[11px] text-slate-400">Projects</p></div>
+              <span className="text-sm font-bold text-slate-900">
+                {dev.projectCount ?? dev.count}
+                <span className="ml-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">Projects</span>
+              </span>
             </div>
           </div>
         </div>
-        {dev.description && <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-slate-500">{dev.description}</p>}
+        {dev.description && (
+          <p className="mt-3.5 line-clamp-2 text-[13px] leading-relaxed text-slate-500">{dev.description}</p>
+        )}
       </div>
 
       {projects.length > 0 && p && (
-        <>
-          <div className="flex gap-4 overflow-x-auto border-b border-slate-100 px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="mt-auto">
+          <div className="flex gap-4 overflow-x-auto border-t border-slate-100 px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {projects.map((pr, i) => (
-              <button key={pr.id} onClick={() => setActive(i)}
-                className={`shrink-0 whitespace-nowrap border-b-2 py-2 text-[13px] font-medium transition ${
-                  i === active ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-400 hover:text-slate-700'
-                }`}>
-                {truncate(pr.name, 16)}
+              <button
+                key={pr.id}
+                onClick={() => setActive(i)}
+                className={`relative shrink-0 whitespace-nowrap py-2.5 text-xs font-semibold transition ${
+                  i === active ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                {truncate(pr.name, 15)}
+                {i === active && <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-brand-600" />}
               </button>
             ))}
           </div>
-          <Link to={`/projects/${p.slug || p.id}`} className="group relative mt-auto block overflow-hidden">
-            <img src={p.image || `https://picsum.photos/seed/${p.id}/640/400`} alt={p.name}
-              className="aspect-[16/10] w-full object-cover transition duration-700 group-hover:scale-105" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
+          <Link to={`/projects/${p.slug || p.id}`} className="group/img relative block overflow-hidden">
+            <img
+              src={p.image || `https://picsum.photos/seed/${p.id}/640/400`}
+              alt={p.name}
+              loading="lazy"
+              className="aspect-[16/10] w-full object-cover transition duration-700 group-hover/img:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/10 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 p-4 text-white">
-              <p className="line-clamp-1 font-bold drop-shadow">{p.name}</p>
-              <p className="line-clamp-1 text-xs text-white/75">{[p.address, p.city].filter(Boolean).join(', ')}</p>
-              <p className="mt-1 text-sm font-bold">{priceRange(p.priceMin, p.priceMax)}</p>
+              <p className="line-clamp-1 text-[15px] font-bold drop-shadow">{p.name}</p>
+              <p className="mt-0.5 line-clamp-1 text-xs text-white/70">{[p.address, p.city].filter(Boolean).join(', ')}</p>
+              <div className="mt-1.5 flex items-center justify-between">
+                <span className="text-sm font-bold">{priceRange(p.priceMin, p.priceMax)}</span>
+                <span className="text-xs font-semibold text-white/0 transition group-hover/img:text-white/90">View →</span>
+              </div>
             </div>
           </Link>
-        </>
+        </div>
       )}
     </div>
   );
@@ -97,29 +123,492 @@ const cardRow = (section, { projectVariant = 'plain' } = {}) => (
   </Scroller>
 );
 
-function ConfigCard({ c, big }) {
+
+/* ── page ────────────────────────────────────────────────── */
+
+/* Isometric "real-estate growth" illustration — pure inline SVG, zero network */
+export function InvestArt({ className = '' }) {
+  const winRows = (x, y, cols, rows, w, gapX, gapY, fill, opacity = 1) =>
+    Array.from({ length: rows }).flatMap((_, r) =>
+      Array.from({ length: cols }).map((_, c) => (
+        <rect key={`${x}-${y}-${r}-${c}`} x={x + c * (w + gapX)} y={y + r * (w * 1.4 + gapY)}
+          width={w} height={w * 1.4} rx="1.5" fill={fill} fillOpacity={opacity} />
+      )),
+    );
   return (
-    <Link to={c.to} className={`group relative block overflow-hidden rounded-2xl ${big ? '' : ''}`}>
-      <div className={`w-full bg-slate-100 ${big ? 'aspect-[4/3]' : 'aspect-[5/4]'}`}>
-        {c.imageUrl
-          ? <img src={c.imageUrl} alt={c.label} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
-          : <div className="grid h-full w-full place-items-center bg-gradient-to-br from-brand-100 to-brand-50 text-4xl">{c.icon || '🏠'}</div>}
-      </div>
-      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
-      <div className="absolute inset-x-0 bottom-0 p-4">
-        <p className={`font-bold text-white drop-shadow-sm ${big ? 'text-lg' : 'text-base'}`}>{c.label}</p>
-        {c.subtitle && <p className="text-xs text-white/80">{c.subtitle}</p>}
-        {c.count != null && (
-          <span className="mt-1.5 inline-block rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur">
-            {c.count} option{c.count === 1 ? '' : 's'}
-          </span>
-        )}
-      </div>
-    </Link>
+    <svg className={className} viewBox="0 0 320 250" fill="none" aria-hidden="true">
+      <ellipse cx="162" cy="224" rx="140" ry="16" fill="#7c3aed" fillOpacity="0.12" />
+      {/* back tower */}
+      <rect x="40" y="104" width="72" height="116" rx="6" fill="#ede9fe" />
+      {winRows(54, 118, 3, 5, 10, 8, 8, '#c4b5fd')}
+      {/* main tower */}
+      <rect x="120" y="52" width="86" height="168" rx="8" fill="#a78bfa" />
+      <rect x="120" y="52" width="30" height="168" fill="#7c3aed" fillOpacity="0.35" />
+      {winRows(134, 70, 3, 7, 11, 9, 9, '#ffffff', 0.9)}
+      {/* right block */}
+      <rect x="214" y="128" width="66" height="92" rx="6" fill="#7c3aed" />
+      {winRows(228, 142, 3, 4, 9, 8, 8, '#ffffff', 0.75)}
+      {/* growth line */}
+      <path d="M46 168 L118 118 L172 140 L268 66" stroke="#4c1d95" strokeWidth="4"
+        strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M248 60 L270 65 L266 87" stroke="#4c1d95" strokeWidth="4"
+        strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="118" cy="118" r="5" fill="#fff" stroke="#7c3aed" strokeWidth="3" />
+      <circle cx="172" cy="140" r="5" fill="#fff" stroke="#7c3aed" strokeWidth="3" />
+    </svg>
   );
 }
 
-/* ── page ────────────────────────────────────────────────── */
+/* Split "explore on the map" panel — project list synced to a Google map */
+function HomeMapExplorer() {
+  const { data: cities = [] } = useCities();
+  const [searchInput, setSearchInput] = useState('');
+  const [filters, setFilters] = useState({
+    q: '',
+    city: '',
+    type: '',
+    status: '',
+    budgetMin: '',
+    budgetMax: '',
+    featured: false,
+  });
+
+  const activeCount = useMemo(() => {
+    return Object.entries(filters).filter(([k, v]) => (k === 'featured' ? v : !!v)).length;
+  }, [filters]);
+
+  const queryParams = useMemo(() => {
+    const p = {};
+    if (filters.q) p.q = filters.q;
+    if (filters.city) p.city = filters.city;
+    if (filters.type) p.type = filters.type;
+    if (filters.status) p.status = filters.status;
+    if (filters.budgetMin) p.budgetMin = filters.budgetMin;
+    if (filters.budgetMax) p.budgetMax = filters.budgetMax;
+    if (filters.featured) p.featured = 'true';
+    return p;
+  }, [filters]);
+
+  const { data: pins = [], isLoading, isFetching } = useProjectPins(queryParams);
+  const [hoverId, setHoverId] = useState(null);
+  const [selected, setSelected] = useState(null);
+  const cardRefs = useRef({});
+  const withCoords = useMemo(() => pins.filter((p) => p.lat && p.lng), [pins]);
+  const activeId = hoverId || selected?.id || null;
+
+  const handleFilterChange = (key, value) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleClearFilters = () => {
+    setSearchInput('');
+    setFilters({
+      q: '',
+      city: '',
+      type: '',
+      status: '',
+      budgetMin: '',
+      budgetMax: '',
+      featured: false,
+    });
+  };
+
+  return (
+    <div className="container-app py-12">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold sm:text-[22px]">Explore projects on the map</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            {isLoading
+              ? 'Loading projects…'
+              : `Compare locations and prices across ${withCoords.length} live project${withCoords.length === 1 ? '' : 's'}`}
+            {isFetching && !isLoading ? ' · updating…' : ''}
+          </p>
+        </div>
+        <Link to="/map" className="shrink-0 text-sm font-semibold text-brand-700 hover:underline">
+          Open full map →
+        </Link>
+      </div>
+
+      {/* Filter bar above map matching the reference design */}
+      <div className="mb-5 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-xs">
+        <div className="relative min-w-[200px] flex-1">
+          <input
+            className="input w-full pl-8 text-sm"
+            placeholder="Search project or builder…"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleFilterChange('q', searchInput.trim());
+            }}
+            onBlur={() => handleFilterChange('q', searchInput.trim())}
+          />
+          <svg
+            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+        </div>
+
+        <select
+          className="input max-w-[170px] text-sm"
+          value={filters.city}
+          onChange={(e) => handleFilterChange('city', e.target.value)}
+        >
+          <option value="">All cities</option>
+          {cities.map((c) => (
+            <option key={c.id} value={c.name}>{c.name}</option>
+          ))}
+        </select>
+
+        <select
+          className="input max-w-[150px] text-sm"
+          value={filters.type}
+          onChange={(e) => handleFilterChange('type', e.target.value)}
+        >
+          <option value="">Any type</option>
+          {MAP_TYPES.map((t) => (
+            <option key={t} value={t}>{TYPE_LABEL[t] || t}</option>
+          ))}
+        </select>
+
+        <select
+          className="input max-w-[160px] text-sm"
+          value={filters.status}
+          onChange={(e) => handleFilterChange('status', e.target.value)}
+        >
+          <option value="">Any status</option>
+          {MAP_STATUSES.map((s) => (
+            <option key={s} value={s}>{STATUS_LABEL[s] || s}</option>
+          ))}
+        </select>
+
+        <input
+          className="input max-w-[110px] text-sm"
+          type="number"
+          placeholder="Min ₹"
+          defaultValue={filters.budgetMin}
+          onBlur={(e) => handleFilterChange('budgetMin', e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleFilterChange('budgetMin', e.target.value)}
+        />
+
+        <input
+          className="input max-w-[110px] text-sm"
+          type="number"
+          placeholder="Max ₹"
+          defaultValue={filters.budgetMax}
+          onBlur={(e) => handleFilterChange('budgetMax', e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleFilterChange('budgetMax', e.target.value)}
+        />
+
+        <label className="flex items-center gap-2 px-2 text-sm text-slate-600 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            className="rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+            checked={filters.featured}
+            onChange={(e) => handleFilterChange('featured', e.target.checked)}
+          />
+          <span>Featured only</span>
+        </label>
+
+        {activeCount > 0 && (
+          <button
+            type="button"
+            className="btn-ghost text-xs font-semibold text-rose-600 hover:text-rose-700 cursor-pointer"
+            onClick={handleClearFilters}
+          >
+            Clear ({activeCount}) ✕
+          </button>
+        )}
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
+        {/* list */}
+        <div className="flex flex-col">
+          <div className="space-y-2.5 max-h-[408px] overflow-y-auto pr-1.5 overscroll-contain [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300 hover:[&::-webkit-scrollbar-thumb]:bg-slate-400 [&::-webkit-scrollbar-track]:bg-transparent lg:max-h-[460px]">
+            {isLoading ? (
+              <div className="flex h-64 items-center justify-center rounded-xl border border-slate-200 bg-white">
+                <Spinner className="h-6 w-6 text-brand-600" />
+              </div>
+            ) : pins.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center">
+                <p className="text-sm font-semibold text-slate-700">No projects match these filters</p>
+                <p className="mt-1 text-xs text-slate-400">Try adjusting your search criteria or clear filters</p>
+                {activeCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleClearFilters}
+                    className="btn-outline mt-3 text-xs"
+                  >
+                    Clear all filters
+                  </button>
+                )}
+              </div>
+            ) : (
+              pins.map((p) => (
+                <div
+                  key={p.id}
+                  ref={(el) => { cardRefs.current[p.id] = el; }}
+                  onMouseEnter={() => setHoverId(p.id)}
+                  onMouseLeave={() => setHoverId(null)}
+                  onClick={() => setSelected(p)}
+                  className={`flex cursor-pointer gap-3 rounded-xl border p-2.5 transition ${
+                    p.id === activeId ? 'border-brand-500 bg-brand-50/60 ring-1 ring-brand-500' : 'border-slate-200 bg-white hover:border-brand-300'
+                  }`}
+                >
+                  <img
+                    src={p.coverImageUrl || p.media?.[0]?.url || `https://picsum.photos/seed/${p.id}/200/160`}
+                    alt={p.name} loading="lazy" className="h-[72px] w-[88px] shrink-0 rounded-lg object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <Link to={`/projects/${p.slug || p.id}`} className="line-clamp-1 text-sm font-semibold text-slate-900 hover:text-brand-700">{p.name}</Link>
+                      <StatusBadge status={p.status} label={STATUS_LABEL[p.status]} />
+                    </div>
+                    <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">{[p.address, p.city].filter(Boolean).join(', ') || p.city || '—'}</p>
+                    <div className="mt-1.5 flex items-center justify-between gap-2">
+                      <span className="truncate text-sm font-semibold text-brand-700">{priceRange(p.priceMin, p.priceMax)}</span>
+                      <span className="shrink-0 text-xs text-slate-400">
+                        {TYPE_LABEL[p.type] || p.type}{p._count?.properties ? ` · ${p._count.properties} units` : ''}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          {pins.length > 4 && (
+            <div className="mt-2 flex items-center justify-between px-1 text-xs text-slate-500 lg:hidden">
+              <span>Showing 4 of {pins.length} projects</span>
+              <span className="flex items-center gap-1 font-medium text-brand-600">
+                <span>Scroll inside to view more</span>
+                <svg className="h-3.5 w-3.5 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                </svg>
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* map */}
+        <div className="overflow-hidden rounded-2xl">
+          <MapView
+            pins={withCoords}
+            height={460}
+            zoom={11}
+            activeId={activeId}
+            panTo={selected ? { lat: selected.lat, lng: selected.lng } : undefined}
+            onSelect={(p) => {
+              setSelected(p || null);
+              if (p) cardRefs.current[p.id]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const QUICK_CATEGORIES = [
+  {
+    label: 'Flats',
+    sub: 'Apartments',
+    to: '/properties?category=Apartment',
+    p: 'M4 21V7l8-4 8 4v14M9 21v-5h6v5M8 10h.01M12 10h.01M16 10h.01',
+  },
+  {
+    label: 'Villas',
+    sub: 'Independent',
+    to: '/properties?category=Villa',
+    p: 'M3 21V10l9-7 9 7v11M9 21v-6a3 3 0 0 1 6 0v6',
+  },
+  {
+    label: 'Plots',
+    sub: 'Land & Sites',
+    to: '/properties?category=Plot',
+    p: 'M3 7l9-4 9 4-9 4-9-4zM3 7v10l9 4 9-4V7M12 11v10',
+  },
+  {
+    label: 'Commercial',
+    sub: 'Offices & Retail',
+    to: '/properties?category=Commercial',
+    p: 'M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 8h2a2 2 0 0 1 2 2v11M8 7h.01M8 11h.01M8 15h.01M12 7h.01M12 11h.01M12 15h.01',
+  },
+  {
+    label: 'New launch',
+    sub: 'Just Launched',
+    to: '/properties?status=UPCOMING&sort=newest',
+    badge: 'NEW',
+    badgeColor: 'bg-rose-500',
+    p: 'M12 2l2.4 7.4H22l-6 4.5 2.3 7.1-6.3-4.6L5.7 21 8 13.9 2 9.4h7.6z',
+  },
+  {
+    label: 'Ready to move',
+    sub: 'Zero Wait',
+    to: '/properties?status=READY_TO_MOVE',
+    badge: 'POPULAR',
+    badgeColor: 'bg-emerald-600',
+    p: 'M3 12l9-9 9 9M5 10v10h14V10M10 20v-6h4v6',
+  },
+  {
+    label: 'Rentals',
+    sub: 'Verified Homes',
+    to: '/properties?intent=RENT',
+    p: 'M9 22V12h6v10M2 10.5L12 3l10 7.5M4 10v12h16V10',
+  },
+  {
+    label: 'Luxury',
+    sub: '₹2 Cr+ Prime',
+    to: '/properties?priceMin=20000000',
+    badge: 'PRIME',
+    badgeColor: 'bg-amber-600',
+    p: 'M3 8l4 10h10l4-10-5 3-4-6-4 6-5-3z',
+  },
+];
+
+function HomeQuickCategories() {
+  const scrollRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  const checkScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setCanScrollLeft(scrollLeft > 10);
+    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+    const max = scrollWidth - clientWidth;
+    setScrollProgress(max > 0 ? scrollLeft / max : 0);
+  };
+
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener('resize', checkScroll);
+    return () => window.removeEventListener('resize', checkScroll);
+  }, []);
+
+  const scroll = (direction) => {
+    if (scrollRef.current) {
+      const offset = direction * (scrollRef.current.clientWidth * 0.7);
+      scrollRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+    }
+  };
+
+  return (
+    <div className="border-b border-slate-100 bg-gradient-to-b from-white via-slate-50/50 to-white py-4 sm:py-6">
+      <div className="container-app relative">
+        {/* Left Arrow Button (Mobile / Tablet Slider) */}
+        {canScrollLeft && (
+          <button
+            type="button"
+            onClick={() => scroll(-1)}
+            className="absolute -left-2 top-1/2 z-20 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-slate-700 shadow-md backdrop-blur-sm transition hover:bg-brand-50 hover:text-brand-600 sm:hidden"
+            aria-label="Scroll left"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        )}
+
+        {/* Right Arrow Button (Mobile / Tablet Slider) */}
+        {canScrollRight && (
+          <button
+            type="button"
+            onClick={() => scroll(1)}
+            className="absolute -right-2 top-1/2 z-20 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-slate-700 shadow-md backdrop-blur-sm transition hover:bg-brand-50 hover:text-brand-600 sm:hidden"
+            aria-label="Scroll right"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        )}
+
+        {/* Left Edge Fade Mask */}
+        {canScrollLeft && (
+          <div className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-r from-white via-white/80 to-transparent sm:hidden" />
+        )}
+
+        {/* Right Edge Fade Mask */}
+        {canScrollRight && (
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-l from-white via-white/80 to-transparent sm:hidden" />
+        )}
+
+        {/* Categories container: Smooth horizontal slider on mobile, responsive grid on sm+ */}
+        <div
+          ref={scrollRef}
+          onScroll={checkScroll}
+          className="flex gap-2.5 overflow-x-auto scroll-smooth pb-1 pt-1.5 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-4 sm:gap-3.5 sm:overflow-visible lg:grid-cols-8"
+        >
+          {QUICK_CATEGORIES.map((c) => (
+            <Link
+              key={c.label}
+              to={c.to}
+              className="group relative flex w-[104px] shrink-0 snap-start flex-col items-center justify-between rounded-2xl border border-slate-200/80 bg-white p-3 text-center shadow-2xs transition-all duration-300 hover:-translate-y-1 hover:border-brand-300 hover:bg-gradient-to-b hover:from-white hover:to-brand-50/40 hover:shadow-md hover:shadow-brand-500/10 active:scale-95 sm:w-auto"
+            >
+              {c.badge && (
+                <span
+                  className={`absolute -top-1.5 right-1.5 rounded-full px-1.5 py-0.2 text-[9px] font-extrabold uppercase tracking-wider text-white shadow-xs ${c.badgeColor}`}
+                >
+                  {c.badge}
+                </span>
+              )}
+
+              <span className="grid h-12 w-12 sm:h-13 sm:w-13 place-items-center rounded-2xl bg-gradient-to-br from-brand-50 via-purple-50/60 to-brand-100/70 text-brand-600 ring-1 ring-brand-500/15 transition-all duration-300 group-hover:scale-110 group-hover:from-brand-600 group-hover:to-brand-700 group-hover:text-white group-hover:shadow-md group-hover:shadow-brand-500/30">
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  className="transition-transform duration-300 group-hover:rotate-3"
+                >
+                  <path d={c.p} strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+
+              <div className="mt-2.5 w-full">
+                <span className="block truncate text-xs sm:text-[13px] font-bold text-slate-800 transition-colors group-hover:text-brand-700">
+                  {c.label}
+                </span>
+                <span className="mt-0.5 block truncate text-[10px] text-slate-400 transition-colors group-hover:text-brand-600 font-medium">
+                  {c.sub}
+                </span>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {/* Mobile Slider Indicator Dots */}
+        <div className="mt-2 flex items-center justify-center gap-1.5 sm:hidden">
+          <span
+            className={`h-1 rounded-full transition-all duration-300 ${
+              scrollProgress < 0.35 ? 'w-5 bg-brand-600' : 'w-1.5 bg-slate-200'
+            }`}
+          />
+          <span
+            className={`h-1 rounded-full transition-all duration-300 ${
+              scrollProgress >= 0.35 && scrollProgress <= 0.7 ? 'w-5 bg-brand-600' : 'w-1.5 bg-slate-200'
+            }`}
+          />
+          <span
+            className={`h-1 rounded-full transition-all duration-300 ${
+              scrollProgress > 0.7 ? 'w-5 bg-brand-600' : 'w-1.5 bg-slate-200'
+            }`}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
   const { data, isLoading } = useHome();
@@ -133,32 +622,41 @@ export default function Home() {
   const t = d.toggles || {};
   const stats = d.stats || {};
   const sections = d.sections || [];
-  const configs = d.configurations || [];
-  const cities = (d.cities || []).filter((c) => c.isPopular || c.count > 0);
+  const allCities = d.cities || [];
+  const cities = allCities.filter((c) => c.isPopular || c.count > 0);
+  // "Explore top cities" rail — admin-flagged featured cities, else fall back
+  const featuredCities = allCities.filter((c) => c.isFeatured);
+  const topCities = featuredCities.length ? featuredCities : cities;
   const builders = d.builders || [];
   const posts = d.posts || [];
-  const budgets = d.budgets || [];
   const banners = (d.heroBanners || []).filter((b) => b.imageUrl);
 
-  const bhk = configs.filter((c) => c.filterType === 'bedrooms').slice(0, 4);
-  const bigCats = configs.slice(0, 3);
+  // sections deliberately hidden from the home page
+  const HIDDEN = new Set([
+    'trending-units', 'trending-projects', 'bestseller-units', 'bestseller-projects',
+    'ready-to-move', 'affordable', 'luxury', 'commercial', 'plots',
+  ]);
+
   const sec = (key) => sections.find((s) => s.key === key);
   const usedKeys = new Set();
   const take = (key) => { const s = sec(key); if (s) usedKeys.add(key); return s; };
 
-  const recProps = take('featured-units') || take('trending-units');
+  const recProps = take('featured-units');
   const recProjects = take('featured-projects');
-  const highDemand = take('trending-projects');
-  const handpicked = take('bestseller-projects') || take('new-launches');
   const newLaunch = sec('new-launches');
-  const restSections = sections.filter((s) => !usedKeys.has(s.key) && s.key !== newLaunch?.key);
+  const restSections = sections.filter(
+    (s) => !usedKeys.has(s.key) && s.key !== newLaunch?.key && !HIDDEN.has(s.key),
+  );
 
   return (
     <>
       <HeroSearch cities={cities} stats={stats} banners={banners} />
 
+      {/* Quick categories */}
+      <HomeQuickCategories />
+
       {/* Explore cities — slider (right below hero) */}
-      {cities.length > 0 && (
+      {topCities.length > 0 && (
         <div className="container-app py-10">
           <Head
             title="Explore top cities"
@@ -166,7 +664,7 @@ export default function Home() {
             to="/projects"
           />
           <Scroller itemClass="w-[158px] sm:w-[200px]">
-            {cities.slice(0, 12).map((c) => (
+            {topCities.slice(0, 12).map((c) => (
               <Link
                 key={c.name}
                 to={`/projects?city=${enc(c.name)}`}
@@ -220,52 +718,8 @@ export default function Home() {
         </Band>
       )}
 
-      {/* Apartments, Villas and more */}
-      {bigCats.length >= 3 && (
-        <div className="container-app py-10">
-          <Head title="Apartments, villas & more" subtitle="Browse by what you’re looking for" />
-          <div className="grid gap-4 sm:grid-cols-3">
-            {bigCats.map((c) => <ConfigCard key={c.id} c={c} big />)}
-          </div>
-        </div>
-      )}
-
-      {/* Projects in high demand — spotlight rail */}
-      {highDemand && highDemand.items.length > 0 && (
-        <Band tint="bg-gradient-to-b from-brand-50/70 via-white to-white">
-          <div className="container-app py-12">
-            <div className="mb-5 flex items-end justify-between gap-4">
-              <div>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-100 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-brand-700">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-500 opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-600" />
-                  </span>
-                  Trending now
-                </span>
-                <h2 className="mt-2 text-xl font-bold sm:text-[22px]">Projects in high demand</h2>
-                <p className="mt-1 text-sm text-slate-500">Ranked by buyer enquiries this month</p>
-              </div>
-              <Link to="/projects?sort=popular" className="shrink-0 text-sm font-semibold text-brand-700 hover:underline">View all →</Link>
-            </div>
-            <Scroller itemClass="w-[82%] sm:w-[54%] lg:w-[46%]">
-              {[...highDemand.items]
-                .sort((a, b) => (b._count?.leads || 0) - (a._count?.leads || 0))
-                .map((it) => (
-                  <ProjectCard key={it.id} project={it} variant="demand" />
-                ))}
-            </Scroller>
-          </div>
-        </Band>
-      )}
-
-      {/* Handpicked */}
-      {handpicked && (
-        <div className="container-app py-10">
-          <Head title="Handpicked projects" to="/projects" />
-          {cardRow(handpicked)}
-        </div>
-      )}
+      {/* Explore on the map */}
+      <HomeMapExplorer />
 
       {/* Newly launched projects */}
       {newLaunch && newLaunch.items.length > 0 && (
@@ -359,10 +813,11 @@ export default function Home() {
 
       {/* Prominent builders */}
       {builders.length > 0 && (
+        <Band tint="bg-slate-50/70">
         <div className="container-app py-12">
           <Head title="Prominent real-estate builders" subtitle="Trusted developers with a proven track record" to="/projects" />
           {builders.some((b) => (b.projects || []).length) ? (
-            <Scroller itemClass="w-[300px] sm:w-[350px]">
+            <Scroller itemClass="w-[290px] sm:w-[340px]">
               {builders.slice(0, 10).map((b) => <DeveloperCard key={b.slug || b.name} dev={b} />)}
             </Scroller>
           ) : (
@@ -379,62 +834,6 @@ export default function Home() {
             </div>
           )}
         </div>
-      )}
-
-      {/* BHK choice */}
-      {bhk.length > 0 && (
-        <Band tint="bg-[#fdf5ec]">
-          <div className="container-app py-12">
-            <Head title="BHK choice in mind?" subtitle="Jump straight to your layout" />
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {bhk.map((c) => <ConfigCard key={c.id} c={c} />)}
-            </div>
-          </div>
-        </Band>
-      )}
-
-      {/* Move in now / later */}
-      <Band tint="bg-white">
-        <div className="container-app py-12">
-          <Head title="Move in now, next year or later" subtitle="Filter projects by how soon you can move in" />
-          <div className="grid gap-5 sm:grid-cols-3">
-            {[
-              { label: 'Ready to move', sub: 'Occupy today — no waiting, no GST surprises', status: 'READY_TO_MOVE', grad: 'from-emerald-600 to-emerald-800' },
-              { label: 'Under construction', sub: 'Watch it rise, book at today’s price', status: 'ONGOING', grad: 'from-brand-600 to-brand-800' },
-              { label: 'New launches', sub: 'Pre-launch pricing on the newest projects', status: 'UPCOMING', grad: 'from-amber-500 to-orange-700' },
-            ].map((c) => (
-              <Link key={c.status} to={`/projects?status=${c.status}`}
-                className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${c.grad} p-6 text-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl`}>
-                <span className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/10" />
-                <span className="pointer-events-none absolute -bottom-12 -left-8 h-36 w-36 rounded-full bg-black/10" />
-                <span className="relative block">
-                  <span className="block text-xs font-semibold uppercase tracking-widest text-white/70">Status</span>
-                  <span className="mt-2 block text-xl font-bold">{c.label}</span>
-                  <span className="mt-1 block text-sm leading-relaxed text-white/80">{c.sub}</span>
-                  <span className="mt-5 inline-block border-b border-white/40 pb-0.5 text-sm font-semibold transition group-hover:border-white">
-                    Browse projects
-                  </span>
-                </span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </Band>
-
-      {/* Budget */}
-      {budgets.length > 0 && (
-        <Band tint="bg-[#fdf5ec]">
-          <div className="container-app pb-14">
-            <Head title="Have a budget in mind?" />
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-              {budgets.map((b) => (
-                <Link key={b.key} to={`/projects?budgetMin=${b.min}&budgetMax=${b.max}`} className="card p-5 hover:shadow-md">
-                  <p className="text-sm font-semibold">{b.label}</p>
-                  <p className="mt-1 text-xs text-slate-400">{b.count} project{b.count === 1 ? '' : 's'}</p>
-                </Link>
-              ))}
-            </div>
-          </div>
         </Band>
       )}
 
@@ -447,17 +846,6 @@ export default function Home() {
           </div>
         </Band>
       ))}
-
-      {/* Verified band */}
-      <Band tint="bg-[#e7f5f0]">
-        <div className="container-app flex flex-col items-center gap-4 py-10 text-center sm:flex-row sm:justify-between sm:text-left">
-          <div>
-            <h2 className="text-xl font-bold">Every listing is RERA-first</h2>
-            <p className="mt-1 text-sm text-slate-600">RERA number, builder and possession status on every project — before you call.</p>
-          </div>
-          <Link to="/projects" className="btn-primary">Browse verified projects</Link>
-        </div>
-      </Band>
 
       {/* Blog */}
       {t.blog !== false && posts.length > 0 && (
@@ -472,41 +860,93 @@ export default function Home() {
         </div>
       )}
 
-      {/* Sell faster — orange band */}
-      <div className="container-app py-6">
-        <div className="flex flex-col items-center gap-4 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 p-8 text-center text-white sm:flex-row sm:justify-between sm:text-left">
-          <div>
-            <h2 className="text-2xl font-bold text-white">Sell or rent faster</h2>
-            <p className="mt-1 text-white/90">List your property or become a Propszy agent — it’s free.</p>
+      {/* Invest in real estate */}
+      <div className="container-app py-6 sm:py-8">
+        <div className="relative overflow-hidden rounded-3xl bg-brand-50 p-6 sm:p-10">
+          <div className="grid items-center gap-6 sm:gap-8 lg:grid-cols-[0.9fr_1fr_auto]">
+            <div className="order-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600">Your wealth, our priority</p>
+              <h2 className="mt-2 text-2xl font-bold text-slate-900 sm:text-3xl">Invest in real estate</h2>
+              <p className="mt-2 max-w-sm text-sm text-slate-500">
+                Start small. Grow big. Be a part of premium, verified property projects.
+              </p>
+              <Link to="/projects" className="btn-primary mt-5 hidden sm:inline-flex">Explore investment plans →</Link>
+            </div>
+
+            {/* Growth Art - visible on mobile screen as well as desktop */}
+            <div className="order-2 lg:order-3 relative mx-auto flex w-full max-w-[210px] sm:max-w-[250px] lg:max-w-[300px] items-center justify-center py-2 lg:py-0">
+              <InvestArt className="w-full drop-shadow-sm transition-transform duration-300 hover:scale-105" />
+            </div>
+
+            <div className="order-3 lg:order-2 space-y-3">
+              {[
+                { t: 'Flexible SIP plans', d: 'Invest monthly, starting from a small amount', p: 'M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6' },
+                { t: 'Track growth in real time', d: 'Watch your portfolio value update live', p: 'M3 3v18h18M7 15l4-4 3 3 5-6' },
+                { t: 'Withdraw anytime*', d: 'Subject to applicable terms & conditions', p: 'M12 3v12M8 11l4 4 4-4M5 21h14' },
+              ].map((f) => (
+                <div key={f.t} className="flex items-start gap-3 rounded-2xl bg-white p-3.5 shadow-card transition hover:shadow-md">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-700">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d={f.p} strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{f.t}</p>
+                    <p className="text-xs text-slate-500">{f.d}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Mobile CTA button at bottom of section */}
+            <div className="order-4 sm:hidden pt-1">
+              <Link to="/projects" className="btn-primary w-full justify-center">Explore investment plans →</Link>
+            </div>
           </div>
-          <Link to="/become-agent" className="btn bg-white text-orange-600 hover:bg-orange-50">Get started free</Link>
         </div>
       </div>
 
-      {/* Services */}
-      <Band tint="bg-white">
-        <div className="container-app py-12">
-          <Head title="Explore our services" />
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {[
-              ['Buy a home', 'Residential & commercial', '/projects', '🏠'],
-              ['Rent a home', 'Ready-to-move units', '/properties', '🔑'],
-              ['Home loans', 'Compare & apply', '/blog', '🏦'],
-              ['Legal & docs', 'Verification help', '/blog', '📄'],
-              ['Interiors', 'Design your space', '/blog', '🛋️'],
-              ['Packers & movers', 'Shift with ease', '/blog', '📦'],
-              ['Property valuation', 'Know the worth', '/projects', '📈'],
-              ['Talk to an advisor', 'Free consultation', '/register', '💬'],
-            ].map(([label, sub, to, icon]) => (
-              <Link key={label} to={to} className="card flex flex-col gap-1 p-4 hover:shadow-md">
-                <span className="text-2xl">{icon}</span>
-                <span className="text-sm font-semibold">{label}</span>
-                <span className="text-xs text-slate-400">{sub}</span>
-              </Link>
-            ))}
+      {/* Become an associate — violet band */}
+      <div className="container-app py-8">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-800 via-brand-900 to-[#2a0a52] p-8 text-white sm:p-10">
+          <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-brand-500/20 blur-3xl" />
+          <div className="relative grid gap-6 sm:grid-cols-[1fr_auto] sm:items-center">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-300">Together we build opportunities</p>
+              <h2 className="mt-2 text-2xl font-bold text-white sm:text-3xl">Become a Propszy associate</h2>
+              <p className="mt-2 max-w-md text-sm text-white/70">
+                Grow your network, earn attractive commissions and build your future in real estate — with
+                marketing support, training and digital tools.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                {['Attractive commission', 'Marketing support', 'Training & guidance', 'Digital tools'].map((t) => (
+                  <span key={t} className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/80">{t}</span>
+                ))}
+              </div>
+            </div>
+            <Link to="/become-associate" className="btn bg-white text-brand-800 hover:bg-brand-50">Join as an associate →</Link>
           </div>
         </div>
-      </Band>
+      </div>
+
+      {/* Newsletter */}
+      <div className="container-app pb-8">
+        <div className="relative overflow-hidden rounded-3xl bg-[#1c0838] p-8 text-white sm:p-10">
+          <div className="absolute -left-10 bottom-0 h-56 w-56 rounded-full bg-brand-600/25 blur-3xl" />
+          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-white sm:text-2xl">Stay updated with the best opportunities</h2>
+              <p className="mt-1 text-sm text-white/60">New projects, investment plans and real-estate insights — in your inbox.</p>
+            </div>
+            <form
+              className="flex w-full max-w-md gap-2"
+              onSubmit={(e) => { e.preventDefault(); const el = e.currentTarget.elements.email; if (el.value) { e.currentTarget.reset(); el.blur(); } }}
+            >
+              <input name="email" type="email" required placeholder="Enter your email address"
+                className="flex-1 rounded-xl bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:bg-white/15 focus:outline-none" />
+              <button className="btn bg-brand-600 text-white hover:bg-brand-500">Subscribe</button>
+            </form>
+          </div>
+        </div>
+      </div>
 
       {/* Popular cities link grid */}
       {cities.length > 0 && (
