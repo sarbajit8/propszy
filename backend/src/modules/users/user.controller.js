@@ -8,14 +8,78 @@ const { logActivity } = require('../../services/activity');
 
 const profileSchema = z.object({
   name: z.string().min(2).max(120).optional(),
+  email: z.string().email().optional(),
   phone: z.string().min(7).max(20).optional(),
   avatarUrl: z.string().url().optional(),
 });
 
 const updateProfile = asyncHandler(async (req, res) => {
   const data = profileSchema.parse(req.body);
+  if (data.email) {
+    const cleanEmail = data.email.trim().toLowerCase();
+    const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
+    if (existing && existing.id !== req.user.id) {
+      throw ApiError.badRequest(`Email ${cleanEmail} is already taken.`);
+    }
+    data.email = cleanEmail;
+  }
   const user = await prisma.user.update({ where: { id: req.user.id }, data });
   return ok(res, { user: publicUser(user) });
+});
+
+const credentialsSchema = z.object({
+  email: z.string().email().optional(),
+  name: z.string().min(2).max(120).optional(),
+  currentPassword: z.string().min(1, 'Current password is required to verify changes'),
+  newPassword: z.string().min(8, 'New password must be at least 8 characters').max(72).optional().or(z.literal('')),
+});
+
+const updateCredentials = asyncHandler(async (req, res) => {
+  const { email, name, currentPassword, newPassword } = credentialsSchema.parse(req.body);
+
+  const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+  if (!user) throw ApiError.notFound('User not found');
+
+  if (user.passwordHash && !(await verifyPassword(currentPassword, user.passwordHash))) {
+    throw ApiError.badRequest('Current password is incorrect');
+  }
+
+  const updateData = {};
+  if (name && name.trim()) {
+    updateData.name = name.trim();
+  }
+
+  if (email && email.trim().toLowerCase() !== user.email?.toLowerCase()) {
+    const cleanEmail = email.trim().toLowerCase();
+    const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
+    if (existing && existing.id !== user.id) {
+      throw ApiError.badRequest(`The ID/email "${cleanEmail}" is already in use by another account.`);
+    }
+    updateData.email = cleanEmail;
+  }
+
+  if (newPassword && newPassword.trim()) {
+    updateData.passwordHash = await hashPassword(newPassword.trim());
+    await prisma.refreshToken.updateMany({
+      where: { userId: user.id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id: user.id },
+    data: updateData,
+  });
+
+  logActivity(req, {
+    action: 'user.credentials_updated',
+    metadata: { changedEmail: !!updateData.email, changedPassword: !!updateData.passwordHash },
+  });
+
+  return ok(res, {
+    user: publicUser(updatedUser),
+    message: 'Admin ID & password updated successfully.',
+  });
 });
 
 const changePassword = asyncHandler(async (req, res) => {
@@ -118,4 +182,4 @@ const deleteUser = asyncHandler(async (req, res) => {
   return ok(res, { deleted: true });
 });
 
-module.exports = { updateProfile, changePassword, listUsers, getUser, adminUpdateUser, deleteUser };
+module.exports = { updateProfile, updateCredentials, changePassword, listUsers, getUser, adminUpdateUser, deleteUser };

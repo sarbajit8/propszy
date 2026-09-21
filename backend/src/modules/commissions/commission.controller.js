@@ -157,15 +157,53 @@ const commissionRates = asyncHandler(async (req, res) => {
       };
     }
 
+    // Ensure exactly 5 levels (L1 to L5) exist
+    const fiveLevels = [1, 2, 3, 4, 5].map((lvl) => {
+      const existing = scheme.levels.find((l) => Number(l.level) === lvl);
+      if (existing) return existing;
+      const g = globalLevels.find((gl) => Number(gl.level) === lvl);
+      const percent = g && g.rateType === 'PERCENT' ? Number(g.rateValue) : 0;
+      const amount = round(g && g.rateType === 'PERCENT' ? (scheme.pool * percent) / 100 : (g ? Number(g.rateValue) : 0));
+      return { level: lvl, percent, amount };
+    });
+    scheme.levels = fiveLevels;
+
+    const l1 = scheme.levels.find((l) => l.level === 1);
+    const myCommission = l1?.amount || 0;
+    const isAgent = req.user.role === 'AGENT';
+
+    if (isAgent) {
+      return {
+        id: p.id,
+        unitType: p.unitType,
+        price: p.price,
+        sale,
+        status: p.status,
+        bedrooms: p.bedrooms,
+        carpetArea: p.carpetArea,
+        project: { id: proj.id, name: proj.name, slug: proj.slug, city: proj.city, type: proj.type },
+        myCommission,
+        scheme: {
+          source: scheme.source,
+          levels: scheme.levels.map((l) => ({
+            level: l.level,
+            amount: l.amount,
+            label: l.level === 1 ? 'Direct Commission (You)' : `Upline Level ${l.level - 1}`,
+          })),
+        },
+      };
+    }
+
     return {
       id: p.id,
       unitType: p.unitType,
       price: p.price,
+      sale,
       status: p.status,
       bedrooms: p.bedrooms,
       carpetArea: p.carpetArea,
       project: { id: proj.id, name: proj.name, slug: proj.slug, city: proj.city, type: proj.type },
-      sale,
+      myCommission,
       scheme,
     };
   });

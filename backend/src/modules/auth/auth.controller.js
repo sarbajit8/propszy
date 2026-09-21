@@ -10,8 +10,8 @@ const REFRESH_COOKIE = 'refreshToken';
 function setRefreshCookie(res, token) {
   res.cookie(REFRESH_COOKIE, token, {
     httpOnly: true,
-    secure: env.isProd,
-    sameSite: env.isProd ? 'none' : 'lax',
+    secure: env.cookie.secure,
+    sameSite: env.cookie.sameSite,
     maxAge: ttlToMs(env.jwt.refreshTtl),
     path: '/',
   });

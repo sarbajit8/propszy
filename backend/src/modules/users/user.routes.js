@@ -8,6 +8,8 @@ router.use(authenticate);
 
 // self-service
 router.patch('/me', ctrl.updateProfile);
+router.patch('/me/credentials', ctrl.updateCredentials);
+router.put('/me/credentials', ctrl.updateCredentials);
 router.post('/me/change-password', ctrl.changePassword);
 
 // admin

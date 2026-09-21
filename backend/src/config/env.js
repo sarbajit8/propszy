@@ -15,11 +15,19 @@ const env = {
   isProd: process.env.NODE_ENV === 'production',
   port: parseInt(process.env.PORT || '5050', 10),
   apiPrefix: process.env.API_PREFIX || '/api',
-  clientOrigin: (process.env.CLIENT_ORIGIN || 'http://localhost:5173')
+  clientOrigin: (process.env.CLIENT_ORIGIN || 'https://propszy.com,https://www.propszy.com,http://localhost:5173')
     .split(',')
     .map((s) => s.trim()),
 
   databaseUrl: required('DATABASE_URL'),
+
+  cookie: {
+    secure: process.env.COOKIE_SECURE !== undefined
+      ? process.env.COOKIE_SECURE === 'true'
+      : process.env.NODE_ENV === 'production',
+    sameSite: process.env.COOKIE_SAME_SITE || (process.env.NODE_ENV === 'production' ? 'none' : 'lax'),
+  },
+  serveFrontend: process.env.SERVE_FRONTEND === 'true',
 
   jwt: {
     accessSecret: required('JWT_ACCESS_SECRET', 'dev-access-secret'),
@@ -31,7 +39,7 @@ const env = {
   storage: {
     driver: process.env.STORAGE_DRIVER || 'local',
     uploadDir: process.env.UPLOAD_DIR || 'uploads',
-    publicBaseUrl: process.env.PUBLIC_BASE_URL || 'http://localhost:5050',
+    publicBaseUrl: process.env.PUBLIC_BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://propszy.com' : 'http://localhost:5050'),
     maxUploadMb: parseInt(process.env.MAX_UPLOAD_MB || '25', 10),
     s3: {
       region: process.env.AWS_REGION,
@@ -43,7 +51,7 @@ const env = {
   },
 
   mail: {
-    from: process.env.MAIL_FROM || 'Propszy <no-reply@propszy.test>',
+    from: process.env.MAIL_FROM || 'Propszy Real Estate <no-reply@propszy.com>',
     host: process.env.SMTP_HOST || 'localhost',
     port: parseInt(process.env.SMTP_PORT || '1025', 10),
     user: process.env.SMTP_USER || undefined,
@@ -58,7 +66,7 @@ const env = {
   },
 
   seed: {
-    adminEmail: process.env.SEED_ADMIN_EMAIL || 'admin@propszy.test',
+    adminEmail: process.env.SEED_ADMIN_EMAIL || 'admin@propszy.com',
     adminPassword: process.env.SEED_ADMIN_PASSWORD || 'Admin@12345',
     adminName: process.env.SEED_ADMIN_NAME || 'Propszy Admin',
   },

@@ -1,12 +1,14 @@
 const { app } = require('./app');
 const { env } = require('./config/env');
 const { prisma } = require('./config/prisma');
+const { autoBootstrap } = require('./services/bootstrap');
 
 async function start() {
   try {
     await prisma.$connect();
     // eslint-disable-next-line no-console
     console.log('[db] connected');
+    await autoBootstrap();
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('[db] connection failed:', err.message);

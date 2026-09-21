@@ -58,6 +58,68 @@ const localDriver = {
   },
 };
 
+const s3Driver = {
+  async save(file, folder = 'misc') {
+    const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+    const { region, bucket, accessKeyId, secretAccessKey } = env.storage.s3;
+    if (!bucket || !region) {
+      throw new Error('S3 storage driver is missing AWS_S3_BUCKET or AWS_REGION in .env');
+    }
+    const clientConfig = { region };
+    if (accessKeyId && secretAccessKey) {
+      clientConfig.credentials = { accessKeyId, secretAccessKey };
+    }
+    const s3 = new S3Client(clientConfig);
+    const originalName = file.originalname || file.filename || 'file';
+    const key = `${folder}/${safeName(originalName)}`;
+
+    let buffer;
+    if (file.buffer) {
+      buffer = file.buffer;
+    } else if (file.path) {
+      buffer = await fs.promises.readFile(file.path);
+    } else {
+      throw new Error('No file buffer or path provided for upload');
+    }
+
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        Body: buffer,
+        ContentType: file.mimetype || 'application/octet-stream',
+      })
+    );
+
+    if (file.path) {
+      await fs.promises.unlink(file.path).catch(() => {});
+    }
+
+    const url = `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+    return {
+      url,
+      key,
+      size: file.size || buffer.length,
+    };
+  },
+  async remove(key) {
+    if (!key) return;
+    try {
+      const { S3Client, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+      const { region, bucket, accessKeyId, secretAccessKey } = env.storage.s3;
+      if (!bucket || !region) return;
+      const clientConfig = { region };
+      if (accessKeyId && secretAccessKey) {
+        clientConfig.credentials = { accessKeyId, secretAccessKey };
+      }
+      const s3 = new S3Client(clientConfig);
+      await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+    } catch {
+      // Ignore S3 delete errors
+    }
+  },
+};
+
 const notImplemented = (name) => ({
   async save() {
     throw new Error(`${name} storage driver not configured`);
@@ -67,7 +129,7 @@ const notImplemented = (name) => ({
 
 const drivers = {
   local: localDriver,
-  s3: notImplemented('s3'),
+  s3: s3Driver,
   cloudinary: notImplemented('cloudinary'),
 };
 

@@ -36,5 +36,5 @@ Run the two dev servers in separate terminals:
   cd backend  ; npm run dev     ->  http://localhost:5050/api
   cd frontend ; npm run dev     ->  http://localhost:5173
 
-Admin:  admin@propszy.test / Admin@12345
+Admin:  admin@propszy.com / Admin@12345
 "@ -ForegroundColor Green

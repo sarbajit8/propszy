@@ -73,7 +73,7 @@ Secrets return masked (`••••••••`) and are kept on save unless r
 Node is on PATH (new terminal). MySQL must be running in XAMPP.
 1. `cd backend && npm run dev`   → http://localhost:5050/api
 2. `cd frontend && npm run dev`  → http://localhost:5173
-3. Sign in as `admin@propszy.test` / `Admin@12345`
+3. Sign in as `admin@propszy.com` / `Admin@12345`
 
 Fresh DB rebuild: `mysql -u root -e "DROP DATABASE propszy_re; CREATE DATABASE propszy_re"` then
 `cd backend && npx prisma migrate deploy && npm run seed`.

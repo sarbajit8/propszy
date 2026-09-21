@@ -6,7 +6,7 @@ require('dotenv').config();
 
 const prisma = new PrismaClient();
 
-const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || 'admin@propszy.test';
+const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || 'admin@propszy.com';
 const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD || 'Admin@12345';
 const ADMIN_NAME = process.env.SEED_ADMIN_NAME || 'Propszy Admin';
 
@@ -23,6 +23,8 @@ const MLM_LEVELS = [
   { level: 1, rateType: 'PERCENT', rateValue: 5.0, label: 'Sourcing agent' },
   { level: 2, rateType: 'PERCENT', rateValue: 2.0, label: 'Sponsor' },
   { level: 3, rateType: 'PERCENT', rateValue: 1.0, label: 'Level 3 upline' },
+  { level: 4, rateType: 'PERCENT', rateValue: 0.5, label: 'Level 4 upline' },
+  { level: 5, rateType: 'PERCENT', rateValue: 0.25, label: 'Level 5 upline' },
 ];
 
 const AMENITIES = [
@@ -70,13 +72,13 @@ async function main() {
   if (agentCount === 0) {
     const agent = await prisma.user.create({
       data: {
-        name: 'Ravi Sharma', email: 'agent@propszy.test', role: 'AGENT',
+        name: 'Ravi Sharma', email: 'agent@propszy.com', role: 'AGENT',
         passwordHash, referralCode: 'RAVI2026', kycStatus: 'APPROVED', emailVerified: true,
       },
     });
     const subAgent = await prisma.user.create({
       data: {
-        name: 'Neha Gupta', email: 'subagent@propszy.test', role: 'AGENT',
+        name: 'Neha Gupta', email: 'subagent@propszy.com', role: 'AGENT',
         passwordHash, referralCode: 'NEHA2026', sponsorAgentId: agent.id,
         kycStatus: 'APPROVED', emailVerified: true,
       },

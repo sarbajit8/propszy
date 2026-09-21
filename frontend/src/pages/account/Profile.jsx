@@ -10,7 +10,11 @@ const GLASS = 'rounded-2xl border border-white/60 bg-white/70 shadow-sm shadow-s
 export default function Profile() {
   const user = useSelector(selectUser);
   const dispatch = useDispatch();
-  const [form, setForm] = useState({ name: user?.name || '', phone: user?.phone || '' });
+  const [form, setForm] = useState({
+    name: user?.name || '',
+    phone: user?.phone || '',
+    email: user?.email?.includes('@phone.propszy.local') ? '' : (user?.email || ''),
+  });
   const [pw, setPw] = useState({ currentPassword: '', newPassword: '' });
   const [busy, setBusy] = useState(false);
 
@@ -30,9 +34,12 @@ export default function Profile() {
 
   const changePw = async (e) => {
     e.preventDefault();
+    if (!pw.currentPassword) return toast.error('Enter your current password');
+    if (pw.newPassword.length < 8) return toast.error('New password must be at least 8 characters');
     try {
       await api.post('/users/me/change-password', pw);
-      toast.success('Password changed — please sign in again');
+      toast.success('Password changed successfully');
+      setPw({ currentPassword: '', newPassword: '' });
     } catch (err) {
       toast.error(apiError(err));
     }
@@ -66,8 +73,14 @@ export default function Profile() {
             <input className="input" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
           </div>
           <div>
-            <label className="label">Email</label>
-            <input className="input bg-slate-50" value={user?.email?.includes('@phone.propszy.local') ? 'Not set' : user?.email} disabled />
+            <label className="label">Email / Login ID</label>
+            <input
+              className="input"
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              placeholder="you@domain.com"
+            />
           </div>
           <button className="btn-primary" disabled={busy}>{busy ? 'Saving…' : 'Save changes'}</button>
         </form>

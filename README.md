@@ -9,55 +9,40 @@ with three roles — **Admin**, **Agent** (MLM referral hierarchy) and **Custome
 | Layer     | Choice |
 |-----------|--------|
 | Backend   | Node.js + Express (REST), Prisma ORM |
-| Database  | MySQL (XAMPP) |
+| Database  | Standard MySQL 8 (port 3306) / AWS RDS (or local XAMPP in dev) |
 | Auth      | JWT access + refresh tokens, RBAC |
 | Frontend  | React (Vite) + React Router + Redux Toolkit + React Query + Tailwind CSS |
-| Media     | Local disk in dev (`/uploads`), pluggable S3/Cloudinary adapter |
+| Media     | Local disk in dev (`/uploads`), pluggable AWS S3 adapter |
 | Maps      | Google Maps JS API (`@react-google-maps/api`) |
 | Charts    | Recharts |
 | Tree view | `react-d3-tree` |
 
 Theme: **violet** (Tailwind `violet` palette, primary `#7c3aed`).
 
-## Repository Layout
+## AWS Deployment Guide
 
+For full step-by-step instructions to deploy on AWS (EC2 / RDS) with standard MySQL, Nginx, PM2, and SSL without XAMPP, see:
+👉 **[AWS_DEPLOYMENT_GUIDE.md](AWS_DEPLOYMENT_GUIDE.md)**
+
+---
+
+## Prerequisites (Local Development)
+
+- **MySQL 8** (standard MySQL on `localhost:3306` or XAMPP on `localhost:3307`).
+- **Node.js** — v20+ or v24 LTS (npm 10+).
+
+## Database Setup (Standard MySQL — No XAMPP)
+
+Run the included initialization script:
+```bash
+mysql -u root -p < init-mysql.sql
 ```
-propszy/
-├── backend/                 Express API
-│   ├── prisma/
-│   │   └── schema.prisma
-│   ├── src/
-│   │   ├── config/          env, db, logger
-│   │   ├── middleware/      auth, rbac, error, upload, validate
-│   │   ├── modules/         feature-based (auth, projects, properties, leads, mlm, ...)
-│   │   ├── utils/
-│   │   ├── app.js
-│   │   └── server.js
-│   ├── uploads/             dev media storage (gitignored)
-│   └── .env
-├── frontend/                React SPA
-│   └── src/
-│       ├── api/             axios client + endpoint hooks
-│       ├── app/             redux store
-│       ├── components/      shared UI
-│       ├── features/        role dashboards & flows
-│       ├── pages/           public pages
-│       ├── routes/          route guards
-│       └── lib/
-```
-
-## Prerequisites
-
-- **XAMPP** running MySQL/MariaDB on `localhost:3307` (default user `root`, empty password).
-- **Node.js** — v24.20.0 is installed system-wide at `C:\Program Files\nodejs` (npm 11). Open a **new** terminal so it's on PATH.
-
-## Database
-
-This project uses its own database **`propszy_re`** — a separate application already
-owns a database literally named `propszy` on this box, so don't point at that one.
-
+Or create it manually:
 ```sql
-CREATE DATABASE propszy_re CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS propszy_re CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'propszy_user'@'localhost' IDENTIFIED BY 'PropszySecure2026!';
+GRANT ALL PRIVILEGES ON propszy_re.* TO 'propszy_user'@'localhost';
+FLUSH PRIVILEGES;
 ```
 
 ## Setup
@@ -82,8 +67,8 @@ npm run dev                   # http://localhost:5173
 > `prisma migrate deploy` to apply it. For future schema changes run `prisma migrate dev`
 > in a real terminal.
 
-Default admin after seed: `admin@propszy.test` / `Admin@12345`
-Demo agents: `agent@propszy.test` (code `RAVI2026`) → `subagent@propszy.test` (`NEHA2026`), password `Admin@12345`.
+Default admin after seed: `admin@propszy.com` / `Admin@12345`
+Demo agents: `agent@propszy.com` (code `RAVI2026`) → `subagent@propszy.com` (`NEHA2026`), password `Admin@12345`.
 
 ## API keys — add them from the app
 

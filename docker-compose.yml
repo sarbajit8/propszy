@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # ── 1. MySQL 8 Database ─────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: propszy-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: propszy_re
+      MYSQL_USER: propszy_user
+      MYSQL_PASSWORD: PropszySecure2026!
+      MYSQL_ROOT_PASSWORD: RootSecure2026!
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── 2. Express + Prisma Backend API ────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: propszy-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 5050
+      DATABASE_URL: mysql://propszy_user:PropszySecure2026!@mysql:3306/propszy_re
+      CLIENT_ORIGIN: https://propszy.com,https://www.propszy.com,http://localhost,http://localhost:80,http://127.0.0.1
+      STORAGE_DRIVER: local
+      PUBLIC_BASE_URL: https://propszy.com
+      JWT_ACCESS_SECRET: change-me-to-a-secure-random-access-secret-32-chars
+      JWT_REFRESH_SECRET: change-me-to-a-secure-random-refresh-secret-32-chars
+      COOKIE_SECURE: "false"
+      COOKIE_SAME_SITE: "lax"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:5050:5050"
+    volumes:
+      - backend_uploads:/app/uploads
+
+  # ── 3. Frontend React + Nginx ──────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: /api
+        VITE_UPLOADS_URL: /uploads
+    container_name: propszy-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
+  backend_uploads:

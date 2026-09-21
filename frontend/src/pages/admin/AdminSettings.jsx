@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import { api, unwrap, apiError } from '../../lib/api';
+import { selectUser, setUser } from '../../features/auth/authSlice';
 import { PageLoader } from '../../components/ui';
 import ImageUpload from '../../components/ImageUpload';
 
@@ -28,7 +30,7 @@ const FIELD_META = {
       secure: { label: 'Use TLS (port 465)', type: 'checkbox' },
       user: { label: 'Username' },
       pass: { label: 'Password', type: 'password' },
-      from: { label: 'From address', wide: true, placeholder: 'Propszy <no-reply@yourdomain.com>' },
+      from: { label: 'From address', wide: true, placeholder: 'Propszy <no-reply@propszy.com>' },
     },
     testEmail: true,
   },
@@ -107,10 +109,33 @@ const FIELD_META = {
 
 export default function AdminSettings() {
   const qc = useQueryClient();
+  const user = useSelector(selectUser);
+  const dispatch = useDispatch();
+
   const { data, isLoading } = useQuery({ queryKey: ['admin-settings'], queryFn: () => unwrap(api.get('/settings')) });
   const [draft, setDraft] = useState({});
   const [saving, setSaving] = useState(false);
   const [testTo, setTestTo] = useState('');
+
+  // Admin Credentials form state
+  const [adminCreds, setAdminCreds] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [savingCreds, setSavingCreds] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setAdminCreds((prev) => ({
+        ...prev,
+        name: user.name || prev.name,
+        email: user.email || prev.email,
+      }));
+    }
+  }, [user]);
 
   useEffect(() => {
     if (data) {
@@ -124,6 +149,42 @@ export default function AdminSettings() {
 
   const setField = (group, field, value) =>
     setDraft((d) => ({ ...d, [group]: { ...d[group], [field]: value } }));
+
+  const updateAdminCreds = async (e) => {
+    e.preventDefault();
+    if (!adminCreds.currentPassword) {
+      return toast.error('Current password is required to update credentials');
+    }
+    if (adminCreds.newPassword) {
+      if (adminCreds.newPassword.length < 8) {
+        return toast.error('New password must be at least 8 characters');
+      }
+      if (adminCreds.newPassword !== adminCreds.confirmPassword) {
+        return toast.error('New password and confirm password do not match');
+      }
+    }
+    setSavingCreds(true);
+    try {
+      const res = await api.patch('/users/me/credentials', {
+        name: adminCreds.name,
+        email: adminCreds.email,
+        currentPassword: adminCreds.currentPassword,
+        newPassword: adminCreds.newPassword || undefined,
+      });
+      dispatch(setUser(res.data.data.user));
+      toast.success('Admin ID & password updated successfully!');
+      setAdminCreds((prev) => ({
+        ...prev,
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      }));
+    } catch (err) {
+      toast.error(apiError(err));
+    } finally {
+      setSavingCreds(false);
+    }
+  };
 
   const save = async () => {
     setSaving(true);
@@ -166,11 +227,106 @@ export default function AdminSettings() {
   return (
     <div className="max-w-3xl space-y-8 pb-16">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">Settings &amp; integrations</h1>
+        <div>
+          <h1 className="text-xl font-bold">Settings &amp; integrations</h1>
+          <p className="mt-0.5 text-xs text-slate-500">Manage admin credentials, API keys, and platform integrations.</p>
+        </div>
         <button className="btn-primary" disabled={saving} onClick={save}>
-          {saving ? 'Saving…' : 'Save all'}
+          {saving ? 'Saving…' : 'Save all integrations'}
         </button>
       </div>
+
+      {/* ── Admin ID & Password Section ───────────────────────────── */}
+      <section id="admin-credentials" className="card p-6 border-2 border-brand-200/80 bg-gradient-to-br from-white via-white to-brand-50/30 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-brand-600 text-white shadow-sm">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+              </span>
+              <h2 className="text-base font-bold text-slate-900">Admin Account Credentials (ID &amp; Password)</h2>
+            </div>
+            <p className="mt-1 text-xs text-slate-500">
+              Update your Admin login email/ID and password. These credentials are used to sign in at <code className="rounded bg-slate-100 px-1 text-brand-700">/admin/login</code>.
+            </p>
+          </div>
+          <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 border border-brand-200/50">
+            Active ID: {user?.email}
+          </span>
+        </div>
+
+        <form onSubmit={updateAdminCreds} className="mt-5 space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="label">Admin Name</label>
+              <input
+                className="input"
+                value={adminCreds.name}
+                onChange={(e) => setAdminCreds((c) => ({ ...c, name: e.target.value }))}
+                placeholder="Propszy Admin"
+                required
+              />
+            </div>
+            <div>
+              <label className="label">Admin Login ID (Email) *</label>
+              <input
+                className="input font-medium"
+                type="email"
+                value={adminCreds.email}
+                onChange={(e) => setAdminCreds((c) => ({ ...c, email: e.target.value }))}
+                placeholder="admin@propszy.com"
+                required
+              />
+              <p className="mt-1 text-[11px] text-slate-400">Used as your login username/email for the Admin Console.</p>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-slate-200/70 bg-slate-50/60 p-4 space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-600">Password Update</p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div>
+                <label className="label">Current Password *</label>
+                <input
+                  className="input bg-white"
+                  type="password"
+                  value={adminCreds.currentPassword}
+                  onChange={(e) => setAdminCreds((c) => ({ ...c, currentPassword: e.target.value }))}
+                  placeholder="Required for security"
+                  required
+                />
+              </div>
+              <div>
+                <label className="label">New Password (optional)</label>
+                <input
+                  className="input bg-white"
+                  type="password"
+                  minLength={8}
+                  value={adminCreds.newPassword}
+                  onChange={(e) => setAdminCreds((c) => ({ ...c, newPassword: e.target.value }))}
+                  placeholder="Leave blank to keep same"
+                />
+              </div>
+              <div>
+                <label className="label">Confirm New Password</label>
+                <input
+                  className="input bg-white"
+                  type="password"
+                  minLength={8}
+                  value={adminCreds.confirmPassword}
+                  onChange={(e) => setAdminCreds((c) => ({ ...c, confirmPassword: e.target.value }))}
+                  placeholder="Re-type new password"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-1">
+            <button type="submit" className="btn-primary" disabled={savingCreds}>
+              {savingCreds ? 'Updating Credentials…' : 'Save Admin ID & Password'}
+            </button>
+          </div>
+        </form>
+      </section>
 
       {Object.entries(data).map(([groupKey, group]) => {
         const meta = FIELD_META[groupKey] || { fields: {} };

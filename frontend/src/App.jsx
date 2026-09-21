@@ -136,6 +136,7 @@ export default function App() {
         <Route path="associates" element={<AdminAgents />} />
         <Route path="customers" element={<AdminUsers />} />
         <Route path="kyc" element={<AdminKyc />} />
+        <Route path="rates" element={<AgentRates />} />
         <Route path="mlm" element={<AdminMlm />} />
         <Route path="commissions" element={<AdminCommissions />} />
         <Route path="cms" element={<AdminCms />} />

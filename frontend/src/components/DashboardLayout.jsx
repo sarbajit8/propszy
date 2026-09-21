@@ -53,6 +53,7 @@ const ADMIN_GROUPS = [
       ['/admin/associates', 'Associates', Icon.users],
       ['/admin/customers', 'Customers', Icon.users],
       ['/admin/kyc', 'KYC review', Icon.shieldCheck],
+      ['/admin/rates', 'Commission rates', Icon.target],
       ['/admin/mlm', 'MLM & commissions', Icon.network],
       ['/admin/commissions', 'Commission ledger', Icon.wallet],
     ],
