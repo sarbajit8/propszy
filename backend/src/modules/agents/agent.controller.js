@@ -10,11 +10,11 @@ const { downlineIds } = require('../leads/lead.service');
 
 const { env } = require('../../config/env');
 
-// POST /agents/apply — a logged-in CUSTOMER upgrades to a pending AGENT
+// POST /agents/apply — a logged-in CUSTOMER starts the upgrade flow to AGENT
 const applyAsAgent = asyncHandler(async (req, res) => {
   const { referralCode } = z.object({ referralCode: z.string().optional() }).parse(req.body);
-  if (req.user.role === 'AGENT') throw ApiError.badRequest('You are already an agent');
-  if (!['CUSTOMER'].includes(req.user.role)) throw ApiError.forbidden();
+  if (req.user.role === 'AGENT') throw ApiError.badRequest('You are already an approved agent');
+  if (!['CUSTOMER'].includes(req.user.role)) throw ApiError.forbidden('Only customers can apply for an agent upgrade');
 
   let sponsorAgentId = req.user.sponsorAgentId || null;
   if (!sponsorAgentId && referralCode) {
@@ -25,19 +25,17 @@ const applyAsAgent = asyncHandler(async (req, res) => {
   const user = await prisma.user.update({
     where: { id: req.user.id },
     data: {
-      role: 'AGENT',
-      kycStatus: 'NOT_SUBMITTED',
-      referralCode: await uniqueReferralCode(),
-      sponsorAgentId,
+      ...(sponsorAgentId ? { sponsorAgentId } : {}),
     },
   });
 
-  const admins = await prisma.user.findMany({ where: { role: { in: ['ADMIN', 'SUBADMIN'] } }, select: { id: true } });
-  admins.forEach((a) =>
-    notify(a.id, { type: 'agent.apply', title: 'New agent application', body: `${user.name} applied to become an agent.`, email: false }).catch(() => {})
-  );
-
-  return ok(res, { id: user.id, role: user.role, kycStatus: user.kycStatus, referralCode: user.referralCode });
+  return ok(res, {
+    id: user.id,
+    role: user.role,
+    kycStatus: user.kycStatus,
+    sponsorAgentId: user.sponsorAgentId,
+    message: 'Please complete and submit your KYC details. Once verified and approved by admin, your account will be upgraded to an Agent.',
+  });
 });
 
 // POST /agents/recruit — an approved agent adds a sub-agent under themselves

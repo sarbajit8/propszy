@@ -48,15 +48,15 @@ async function createLead(input, { actor } = {}) {
       projectId: input.projectId || null,
       propertyId: input.propertyId || null,
       agentId,
-      userId: actor?.role === 'CUSTOMER' ? actor.id : input.userId || null,
+      userId: input.userId || (actor ? actor.id : null),
       guestName: input.name || null,
       guestPhone: input.phone || null,
       guestEmail: input.email || null,
       guestAadhaar: input.aadhaar || null,
       guestPan: input.pan || null,
-      // a logged-in customer's phone is already verified on their account; a
+      // a logged-in user's phone is already verified on their account; a
       // guest lead starts unverified and is upgraded once they complete OTP
-      guestPhoneVerified: actor?.role === 'CUSTOMER',
+      guestPhoneVerified: !!actor,
       purpose: input.purpose || null,
       preferredCity: input.preferredCity || null,
       preferredArea: input.preferredArea || null,

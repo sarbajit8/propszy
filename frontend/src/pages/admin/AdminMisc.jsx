@@ -8,6 +8,71 @@ import { PageLoader } from '../../components/ui';
 import DataTable from '../../components/DataTable';
 import AdminHeroSlider from './AdminHeroSlider';
 
+/* ─────────────── Associate detail modal ─────────────── */
+function AgentDetailModal({ agent, onClose, onChanged }) {
+  const qc = useQueryClient();
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ['admin-agents'] });
+    qc.invalidateQueries({ queryKey: ['admin-kyc'] });
+    qc.invalidateQueries({ queryKey: ['admin-kyc-agent', agent.id] });
+    onChanged?.();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="relative my-6 w-full max-w-3xl rounded-2xl bg-white shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-full bg-brand-100 text-lg font-bold text-brand-700">
+              {agent.name?.[0]?.toUpperCase()}
+            </div>
+            <div>
+              <p className="font-semibold text-slate-900">{agent.name}</p>
+              <p className="text-xs text-slate-400">{agent.email}{agent.phone ? ` · ${agent.phone}` : ''}</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 6l12 12M18 6L6 18" strokeLinecap="round"/></svg>
+          </button>
+        </div>
+
+        {/* Quick stats bar */}
+        <div className="grid grid-cols-4 divide-x divide-slate-100 border-b border-slate-100 bg-slate-50 text-center text-sm">
+          {[
+            ['Referral Code', agent.referralCode || '—'],
+            ['Sponsor', agent.sponsorAgent?.name || '—'],
+            ['Direct recruits', agent._count?.downline ?? 0],
+            ['Leads', agent._count?.leadsAsAgent ?? 0],
+          ].map(([label, val]) => (
+            <div key={label} className="px-4 py-3">
+              <p className="text-[11px] text-slate-400">{label}</p>
+              <p className="mt-0.5 font-semibold text-slate-800">{val}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* KYC section */}
+        <div className="p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <p className="font-semibold text-slate-800">KYC &amp; Verification</p>
+            <span className={`badge ${KYC_BADGE[agent.kycStatus] || KYC_BADGE.PENDING}`}>
+              {(agent.kycStatus || 'NOT_SUBMITTED').replace('_', ' ')}
+            </span>
+          </div>
+          <AgentKycPanel agentId={agent.id} onChange={refresh} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─────────────── Associates (agents) ─────────────── */
 export function AdminAgents() {
   const qc = useQueryClient();
@@ -18,6 +83,7 @@ export function AdminAgents() {
     queryFn: () => api.get('/agents', { params: { page, q, limit: 15 } }).then((r) => r.data),
   });
   const [treeFor, setTreeFor] = useState(null);
+  const [detailFor, setDetailFor] = useState(null);
 
   const remove = async (r) => {
     if (!confirm(`Delete associate "${r.name}"? This can't be undone.`)) return;
@@ -40,18 +106,27 @@ export function AdminAgents() {
         empty="No associates"
         columns={[
           { key: 'name', header: 'Associate', render: (r) => (
-            <div><p className="font-medium">{r.name}</p><p className="text-xs text-slate-400">{r.email} · {r.referralCode}</p></div>
+            <div><p className="font-medium">{r.name}</p><p className="text-xs text-slate-400">{r.email}{r.phone ? ` · ${r.phone}` : ''} · {r.referralCode}</p></div>
           )},
           { key: 'sponsor', header: 'Sponsor', render: (r) => r.sponsorAgent?.name || '—' },
           { key: 'downline', header: 'Direct', render: (r) => r._count?.downline ?? 0 },
           { key: 'leads', header: 'Leads', render: (r) => r._count?.leadsAsAgent ?? 0 },
           { key: 'kyc', header: 'KYC', render: (r) => (
-            <span className={`badge ${r.kycStatus === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' : r.kycStatus === 'REJECTED' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>
-              {r.kycStatus}
+            <span className={`badge ${r.kycStatus === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' : r.kycStatus === 'REJECTED' ? 'bg-rose-100 text-rose-700' : r.kycStatus === 'PENDING' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
+              {(r.kycStatus || 'NOT_SUBMITTED').replace('_', ' ')}
             </span>
           )},
+          { key: 'view', header: '', render: (r) => (
+            <button
+              className="inline-flex items-center gap-1 rounded-lg bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-700 hover:bg-brand-100 transition-colors"
+              onClick={() => setDetailFor(r)}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M2 12s4-8 10-8 10 8 10 8-4 8-10 8-10-8-10-8z"/></svg>
+              View
+            </button>
+          )},
           { key: 'tree', header: '', render: (r) => (
-            <button className="text-xs text-brand-700 hover:underline" onClick={() => setTreeFor(r)}>View tree</button>
+            <button className="text-xs text-slate-500 hover:text-brand-700 hover:underline" onClick={() => setTreeFor(r)}>Tree</button>
           )},
           { key: 'actions', header: '', render: (r) => (
             <button className="text-xs font-medium text-rose-600 hover:underline" onClick={() => remove(r)}>Delete</button>
@@ -59,9 +134,17 @@ export function AdminAgents() {
         ]}
       />
       {treeFor && <AgentTreeModal agent={treeFor} onClose={() => setTreeFor(null)} />}
+      {detailFor && (
+        <AgentDetailModal
+          agent={detailFor}
+          onClose={() => setDetailFor(null)}
+          onChanged={() => qc.invalidateQueries({ queryKey: ['admin-agents'] })}
+        />
+      )}
     </div>
   );
 }
+
 
 /* ─────────────── Customers (users) ─────────────── */
 export function AdminUsers() {
@@ -220,14 +303,8 @@ export function AdminKyc() {
     queryFn: () => api.get('/kyc', { params: { status: status || undefined } }).then((r) => r.data),
   });
 
-  // group the flat document list into one row per associate
-  const agents = [];
-  const seen = new Set();
-  (data?.data || []).forEach((doc) => {
-    if (!doc.agent || seen.has(doc.agent.id)) return;
-    seen.add(doc.agent.id);
-    agents.push(doc.agent);
-  });
+  // API returns users directly (not documents with .agent)
+  const applicants = data?.data || [];
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['admin-kyc'] });
@@ -236,7 +313,10 @@ export function AdminKyc() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold">KYC review</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold">KYC review</h1>
+        <p className="text-sm text-slate-500">{applicants.length} applicant{applicants.length !== 1 ? 's' : ''}</p>
+      </div>
       <div className="flex gap-2">
         {['PENDING', 'APPROVED', 'REJECTED', ''].map((s) => (
           <button key={s || 'all'} onClick={() => { setStatus(s); setOpenId(null); }}
@@ -246,18 +326,24 @@ export function AdminKyc() {
         ))}
       </div>
 
-      {isLoading ? <PageLoader /> : agents.length === 0 ? (
-        <div className="card p-10 text-center text-sm text-slate-400">No associates to review here.</div>
+      {isLoading ? <PageLoader /> : applicants.length === 0 ? (
+        <div className="card p-10 text-center text-sm text-slate-400">No KYC applications to review here.</div>
       ) : (
         <div className="card divide-y divide-slate-100">
-          {agents.map((a) => (
+          {applicants.map((a) => (
             <div key={a.id}>
               <button onClick={() => setOpenId(openId === a.id ? null : a.id)}
                 className="flex w-full items-center gap-3 p-4 text-left text-sm hover:bg-slate-50">
                 <div className="flex-1">
                   <p className="font-medium">{a.name}</p>
-                  <p className="text-xs text-slate-400">{a.email} · {a.referralCode}</p>
+                  <p className="text-xs text-slate-400">{a.email}{a.phone ? ` · ${a.phone}` : ''}{a.referralCode ? ` · ${a.referralCode}` : ''}</p>
                 </div>
+                {/* Show whether this is a customer upgrading or an external agent registration */}
+                <span className={`badge ${
+                  a.role === 'CUSTOMER' ? 'bg-sky-100 text-sky-700' : 'bg-indigo-100 text-indigo-700'
+                }`}>
+                  {a.role === 'CUSTOMER' ? 'Upgrade request' : 'Associate'}
+                </span>
                 <span className={`badge ${KYC_BADGE[a.kycStatus] || KYC_BADGE.PENDING}`}>{(a.kycStatus || 'PENDING').replace('_', ' ')}</span>
                 <span className="text-slate-300">{openId === a.id ? '▲' : '▼'}</span>
               </button>

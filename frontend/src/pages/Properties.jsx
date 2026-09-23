@@ -230,7 +230,7 @@ export default function Properties() {
 
         <div className="min-w-0">
           {isLoading ? (
-            <div className={view === 'list' ? 'space-y-3' : 'grid grid-cols-2 gap-3 sm:gap-6'}>
+            <div className={view === 'list' ? 'space-y-3' : 'grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3'}>
               {Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} />)}
             </div>
           ) : rows.length === 0 ? (
@@ -238,7 +238,7 @@ export default function Properties() {
               action={filterCount ? <button className="btn-outline mt-2" onClick={clearAll}>Clear all filters</button> : null} />
           ) : (
             <>
-              <div className={`${isFetching ? 'opacity-60 transition' : ''} ${view === 'list' ? 'space-y-3' : 'grid grid-cols-2 gap-3 sm:gap-6'}`}>
+              <div className={`${isFetching ? 'opacity-60 transition' : ''} ${view === 'list' ? 'space-y-3' : 'grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3'}`}>
                 {rows.map((u) => <PropertyCard key={u.id} property={u} variant={view} />)}
               </div>
 

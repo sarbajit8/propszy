@@ -43,6 +43,9 @@ function useNavCounts() {
 function SidebarContent({ user, onNavigate }) {
   const joined = user?.createdAt ? new Date(user.createdAt).getFullYear() : null;
   const counts = useNavCounts();
+  const isAgent = user?.role === 'AGENT';
+  const isPendingUpgrade = user?.role === 'CUSTOMER' && user?.kycStatus === 'PENDING';
+  const isRejectedUpgrade = user?.role === 'CUSTOMER' && user?.kycStatus === 'REJECTED';
   return (
     <>
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 p-4 text-white shadow-lg shadow-brand-900/10 ring-1 ring-white/10">
@@ -53,11 +56,51 @@ function SidebarContent({ user, onNavigate }) {
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold">{user?.name}</p>
             <span className="mt-0.5 inline-flex items-center rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-medium backdrop-blur-sm">
-              Customer{joined ? ` · since ${joined}` : ''}
+              {isAgent ? 'Associate & Customer' : 'Customer'}{joined ? ` · since ${joined}` : ''}
             </span>
           </div>
         </div>
       </div>
+
+      {/* Agent dashboard switcher */}
+      {isAgent && (
+        <Link
+          to="/associate"
+          onClick={onNavigate}
+          className="mt-3 flex items-center gap-2.5 rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm font-semibold text-brand-700 shadow-sm hover:bg-brand-100 transition-colors"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="5" r="2.3" /><circle cx="5" cy="19" r="2.3" /><circle cx="19" cy="19" r="2.3" /><path d="M12 7.3V13M12 13L6.5 17M12 13l5.5 4" strokeLinecap="round" /></svg>
+          Open Associate Dashboard
+          <svg className="ml-auto" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </Link>
+      )}
+
+      {/* Customer → Agent upgrade status */}
+      {isPendingUpgrade && (
+        <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs">
+          <p className="font-semibold text-amber-800">⏳ Associate Upgrade: Under Review</p>
+          <p className="mt-0.5 text-amber-700">Your KYC application is being reviewed by Admin.</p>
+        </div>
+      )}
+      {isRejectedUpgrade && (
+        <Link
+          to="/become-associate"
+          onClick={onNavigate}
+          className="mt-3 flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition-colors"
+        >
+          ✗ Associate Upgrade Rejected — Resubmit
+        </Link>
+      )}
+      {!isAgent && !isPendingUpgrade && !isRejectedUpgrade && (
+        <Link
+          to="/become-associate"
+          onClick={onNavigate}
+          className="mt-3 flex items-center gap-2.5 rounded-2xl border border-dashed border-brand-300/70 bg-white/50 px-4 py-3 text-xs font-semibold text-brand-700 hover:bg-brand-50 transition-colors"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14" strokeLinecap="round" /></svg>
+          Become an Associate
+        </Link>
+      )}
 
       <nav className="mt-4 space-y-1 rounded-2xl border border-white/60 bg-white/60 p-2 shadow-sm shadow-slate-200/50 backdrop-blur-xl">
         {NAV.map(([to, label, IconFn, countKey]) => {
@@ -121,6 +164,12 @@ export default function AccountLayout() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {user?.role === 'AGENT' && (
+            <Link to="/associate" className="hidden items-center gap-1.5 rounded-lg bg-brand-50 px-3 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-100 sm:flex">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="5" r="2.3" /><circle cx="5" cy="19" r="2.3" /><circle cx="19" cy="19" r="2.3" /><path d="M12 7.3V13M12 13L6.5 17M12 13l5.5 4" strokeLinecap="round" /></svg>
+              Associate Dashboard
+            </Link>
+          )}
           <Link to="/" className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-white/80 sm:flex">
             <Icon.home /> Back to site
           </Link>

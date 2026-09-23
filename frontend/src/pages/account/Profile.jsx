@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { api, apiError } from '../../lib/api';
 import { selectUser, setUser } from '../../features/auth/authSlice';
@@ -17,6 +18,10 @@ export default function Profile() {
   });
   const [pw, setPw] = useState({ currentPassword: '', newPassword: '' });
   const [busy, setBusy] = useState(false);
+
+  const isAgent = user?.role === 'AGENT';
+  const isPendingUpgrade = user?.role === 'CUSTOMER' && user?.kycStatus === 'PENDING';
+  const isRejectedUpgrade = user?.role === 'CUSTOMER' && user?.kycStatus === 'REJECTED';
 
   const saveProfile = async (e) => {
     e.preventDefault();
@@ -57,9 +62,74 @@ export default function Profile() {
         <div className="min-w-0">
           <p className="truncate text-base font-semibold text-slate-900">{user?.name}</p>
           <p className="truncate text-sm text-slate-500">{user?.phone ? `+91 ${user.phone}` : user?.email}</p>
-          <span className="mt-1 inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-700">Customer</span>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            {isAgent ? (
+              <>
+                <span className="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-700">Associate</span>
+                <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">Customer</span>
+              </>
+            ) : (
+              <span className="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-700">Customer</span>
+            )}
+            {isPendingUpgrade && (
+              <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">⏳ Associate upgrade: pending review</span>
+            )}
+            {isRejectedUpgrade && (
+              <span className="inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-semibold text-rose-700">✗ Associate upgrade: rejected</span>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Agent upgrade status / CTA */}
+      {isAgent && (
+        <div className={`p-5 ${GLASS}`}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Associate &amp; Customer Account</p>
+              <p className="mt-0.5 text-xs text-slate-500">You have full access to both the Associate Dashboard and Customer Dashboard.</p>
+            </div>
+            <Link to="/associate" className="shrink-0 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700">
+              Open Associate Dashboard
+            </Link>
+          </div>
+          {user?.referralCode && (
+            <p className="mt-3 text-xs text-slate-500">Your referral code: <span className="font-mono font-bold text-slate-800">{user.referralCode}</span></p>
+          )}
+        </div>
+      )}
+      {isPendingUpgrade && (
+        <div className={`p-5 ${GLASS}`}>
+          <p className="text-sm font-semibold text-amber-800">⏳ Associate Upgrade Under Review</p>
+          <p className="mt-1 text-xs text-slate-500">Your KYC application is being reviewed by the Propszy admin team. You will be notified once it's approved.</p>
+        </div>
+      )}
+      {isRejectedUpgrade && (
+        <div className={`p-5 ${GLASS}`}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-rose-700">Associate Upgrade Rejected</p>
+              <p className="mt-0.5 text-xs text-slate-500">Your KYC application was rejected. You can update your details and resubmit.</p>
+            </div>
+            <Link to="/become-associate" className="shrink-0 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700">
+              Resubmit KYC
+            </Link>
+          </div>
+        </div>
+      )}
+      {!isAgent && !isPendingUpgrade && !isRejectedUpgrade && (
+        <div className={`p-5 ${GLASS}`}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Become a Propszy Associate</p>
+              <p className="mt-0.5 text-xs text-slate-500">Earn level-wise commissions, build a network, and get dual dashboard access.</p>
+            </div>
+            <Link to="/become-associate" className="shrink-0 rounded-lg border border-brand-300 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-100">
+              Apply Now
+            </Link>
+          </div>
+        </div>
+      )}
 
       <div className={`p-5 ${GLASS}`}>
         <h2 className="text-sm font-semibold text-slate-900">Personal details</h2>
@@ -106,3 +176,4 @@ export default function Profile() {
     </div>
   );
 }
+

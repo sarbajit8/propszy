@@ -71,6 +71,17 @@ export const logout = createAsyncThunk('auth/logout', async () => {
   setAccessToken(null);
 });
 
+// Call this to sync the latest role/kycStatus from the server into the store
+// (needed after admin approval so the associate's session reflects the change)
+export const refreshMe = createAsyncThunk('auth/refreshMe', async (_, { rejectWithValue }) => {
+  try {
+    const { data } = await api.get('/auth/me');
+    return data.data.user ?? data.data;
+  } catch (e) {
+    return rejectWithValue(apiError(e));
+  }
+});
+
 const slice = createSlice({
   name: 'auth',
   initialState: { user: null, status: 'idle', ready: false },
@@ -87,6 +98,7 @@ const slice = createSlice({
     b.addCase(verifyOtp.fulfilled, (s, a) => { s.user = a.payload; });
     b.addCase(verifyStaffOtp.fulfilled, (s, a) => { s.user = a.payload; });
     b.addCase(logout.fulfilled, (s) => { s.user = null; });
+    b.addCase(refreshMe.fulfilled, (s, a) => { if (a.payload) s.user = a.payload; });
   },
 });
 

@@ -72,11 +72,14 @@ function InputField({ icon: IconFn, label, required, optional, error, right, ...
 // Login.jsx) — mobile is mandatory, email is optional. Existing associates sign
 // back in the same way at /associate/login (AgentLogin.jsx); admins have their
 // own /admin/login.
+import { KycWizard } from '../agent/AgentKyc';
+
 export default function Register() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [sp] = useSearchParams();
-  const wantsAgent = sp.get('role') === 'associate';
+  const roleParam = sp.get('role');
+  const wantsAgent = roleParam === 'associate' || roleParam === 'agent';
   const { data: cfg } = usePublicConfig();
   const content = { ...DEFAULT_CONTENT, ...Object.fromEntries(Object.entries(cfg?.agentAuth || {}).filter(([, v]) => v)) };
 
@@ -89,7 +92,7 @@ export default function Register() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [referralCode, setReferralCode] = useState(sp.get('ref') || '');
-  const [stage, setStage] = useState('phone'); // phone | otp
+  const [stage, setStage] = useState('phone'); // phone | otp | kyc
   const [isNewUser, setIsNewUser] = useState(true);
   const [busy, setBusy] = useState(false);
   const [cooldown, setCooldown] = useState(0);
@@ -137,11 +140,16 @@ export default function Register() {
         referralCode: referralCode.trim() || undefined,
       })).unwrap();
       if (isNewUser) {
-        toast.success('Associate account created — complete your KYC to start earning.');
-        navigate('/associate/kyc');
+        toast.success('Mobile verified! Now complete your KYC verification.');
+        setStage('kyc');
       } else {
-        toast.success(`Welcome back, ${user.name.split(' ')[0]}!`);
-        navigate('/associate');
+        if (user.kycStatus === 'APPROVED') {
+          toast.success(`Welcome back, ${user.name.split(' ')[0]}!`);
+          navigate('/associate');
+        } else {
+          toast.success('Signed in. Please complete your KYC verification.');
+          setStage('kyc');
+        }
       }
     } catch (err) {
       toast.error(err || 'Verification failed');
@@ -216,7 +224,7 @@ export default function Register() {
 
         {/* ── form panel ──────────────────────────────────── */}
         <div className="flex items-center justify-center p-6 sm:p-10">
-          <div className="w-full max-w-md">
+          <div className={`w-full transition-all duration-300 ${stage === 'kyc' ? 'max-w-2xl' : 'max-w-md'}`}>
             <Link to="/" className="mb-6 flex items-center justify-center lg:hidden"><Logo /></Link>
 
             <div className="relative overflow-hidden rounded-2xl bg-white p-7 shadow-xl shadow-slate-200/60 sm:p-8">
@@ -224,95 +232,116 @@ export default function Register() {
               <div className="pointer-events-none absolute -bottom-12 -right-6 h-32 w-32 rounded-full bg-indigo-100/60 blur-2xl" />
 
               <div className="relative">
-                <div className="flex items-start gap-3.5">
-                  <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-brand-100 text-brand-600">
-                    {stage === 'phone' ? <Icon.personPlus /> : <Icon.shieldCheck />}
-                  </span>
+                {stage === 'kyc' ? (
                   <div>
-                    <h1 className="text-2xl font-extrabold text-slate-900">
-                      {stage === 'phone' ? 'Become a Propszy Associate' : 'Verify your mobile'}
-                    </h1>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {stage === 'phone'
-                        ? 'Enter your mobile number to get an OTP and register as an associate.'
-                        : "We've sent a 6-digit code to your mobile number"}
-                    </p>
-                    {stage === 'otp' && <p className="text-sm font-semibold text-slate-700">+91 {phoneDigits}</p>}
+                    <div className="mb-6 flex items-center gap-3">
+                      <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-100 text-emerald-700">
+                        <Icon.shieldCheck width="22" height="22" />
+                      </span>
+                      <div>
+                        <h1 className="text-xl font-extrabold text-slate-900">Associate KYC Verification</h1>
+                        <p className="text-xs text-slate-500">Phone verified (+91 {phoneDigits}) · Complete verification to submit for admin approval</p>
+                      </div>
+                    </div>
+                    <KycWizard
+                      initialReferralCode={referralCode}
+                      customTitle="Associate Registration KYC"
+                      showDashboardLinks={true}
+                    />
                   </div>
-                </div>
-
-                {stage === 'phone' ? (
-                  <form onSubmit={sendOtp} className="mt-6 space-y-4">
-                    <div>
-                      <label className="label">Mobile number <span className="text-rose-500">*</span></label>
-                      <div className={`flex items-stretch overflow-hidden rounded-lg border bg-white transition ${phone ? 'border-slate-300' : 'border-slate-200'} focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100`}>
-                        <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap border-r border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-500">
-                          <span className="rounded-[2px] bg-orange-500 px-1 text-[9px] font-bold leading-[14px] text-white">IN</span> +91
-                        </span>
-                        <input
-                          className="w-full border-0 bg-transparent px-3 py-2.5 text-base tracking-wide outline-none"
-                          type="tel" inputMode="numeric" required autoFocus maxLength={10}
-                          placeholder="98765 43210"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                        />
+                ) : (
+                  <>
+                    <div className="flex items-start gap-3.5">
+                      <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-brand-100 text-brand-600">
+                        {stage === 'phone' ? <Icon.personPlus /> : <Icon.shieldCheck />}
+                      </span>
+                      <div>
+                        <h1 className="text-2xl font-extrabold text-slate-900">
+                          {stage === 'phone' ? 'Become a Propszy Associate' : 'Verify your mobile'}
+                        </h1>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {stage === 'phone'
+                            ? 'Enter your mobile number to get an OTP and register as an associate.'
+                            : "We've sent a 6-digit code to your mobile number"}
+                        </p>
+                        {stage === 'otp' && <p className="text-sm font-semibold text-slate-700">+91 {phoneDigits}</p>}
                       </div>
                     </div>
 
-                    <InputField icon={Icon.people} label="Sponsor referral code" optional placeholder="Enter associate code"
-                      value={referralCode} onChange={(e) => setReferralCode(e.target.value)} />
+                    {stage === 'phone' ? (
+                      <form onSubmit={sendOtp} className="mt-6 space-y-4">
+                        <div>
+                          <label className="label">Mobile number <span className="text-rose-500">*</span></label>
+                          <div className={`flex items-stretch overflow-hidden rounded-lg border bg-white transition ${phone ? 'border-slate-300' : 'border-slate-200'} focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100`}>
+                            <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap border-r border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-500">
+                              <span className="rounded-[2px] bg-orange-500 px-1 text-[9px] font-bold leading-[14px] text-white">IN</span> +91
+                            </span>
+                            <input
+                              className="w-full border-0 bg-transparent px-3 py-2.5 text-base tracking-wide outline-none"
+                              type="tel" inputMode="numeric" required autoFocus maxLength={10}
+                              placeholder="98765 43210"
+                              value={phone}
+                              onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                            />
+                          </div>
+                        </div>
 
-                    <button className="flex w-full items-center justify-center gap-1.5 rounded-full bg-brand-600 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-600/25 transition hover:bg-brand-700 disabled:opacity-50" disabled={busy || !phoneValid}>
-                      {busy ? <Spinner /> : <Icon.personPlus width="18" height="18" />} {busy ? 'Sending…' : 'Send OTP'}
-                    </button>
-                  </form>
-                ) : (
-                  <div className="mt-6 space-y-4">
-                    <OtpBoxes value={otp} onChange={setOtp} onComplete={verify} />
+                        <InputField icon={Icon.people} label="Sponsor referral code" optional placeholder="Enter associate code"
+                          value={referralCode} onChange={(e) => setReferralCode(e.target.value)} />
 
-                    {isNewUser && (
-                      <>
-                        <InputField icon={Icon.person} label="Full name" required placeholder="Enter your full name"
-                          autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
-                        <InputField icon={Icon.mail} label="Email" optional type="email" placeholder="you@example.com"
-                          autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-                      </>
+                        <button className="flex w-full items-center justify-center gap-1.5 rounded-full bg-brand-600 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-600/25 transition hover:bg-brand-700 disabled:opacity-50" disabled={busy || !phoneValid}>
+                          {busy ? <Spinner /> : <Icon.personPlus width="18" height="18" />} {busy ? 'Sending…' : 'Send OTP'}
+                        </button>
+                      </form>
+                    ) : (
+                      <div className="mt-6 space-y-4">
+                        <OtpBoxes value={otp} onChange={setOtp} onComplete={verify} />
+
+                        {isNewUser && (
+                          <>
+                            <InputField icon={Icon.person} label="Full name" required placeholder="Enter your full name"
+                              autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
+                            <InputField icon={Icon.mail} label="Email" optional type="email" placeholder="you@example.com"
+                              autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                          </>
+                        )}
+
+                        <button className="flex w-full items-center justify-center gap-1.5 rounded-full bg-brand-600 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-600/25 transition hover:bg-brand-700 disabled:opacity-50"
+                          disabled={busy || otp.length !== 6 || !nameOk} onClick={() => verify()}>
+                          {busy ? <Spinner /> : <Icon.personPlus width="18" height="18" />} {busy ? 'Verifying…' : isNewUser ? 'Verify & continue to KYC' : 'Verify & sign in'} <Icon.chevron />
+                        </button>
+
+                        <div className="flex items-center justify-between text-sm">
+                          <button type="button" className="font-medium text-slate-500 hover:text-slate-700" onClick={() => { setStage('phone'); setOtp(''); }}>
+                            ← Change number
+                          </button>
+                          {cooldown > 0 ? (
+                            <span className="text-slate-400">Resend OTP in {mm}:{ss}</span>
+                          ) : (
+                            <button type="button" disabled={busy} onClick={(e) => sendOtp(e, true)} className="font-semibold text-brand-700 hover:underline">
+                              Resend OTP
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     )}
 
-                    <button className="flex w-full items-center justify-center gap-1.5 rounded-full bg-brand-600 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-600/25 transition hover:bg-brand-700 disabled:opacity-50"
-                      disabled={busy || otp.length !== 6 || !nameOk} onClick={() => verify()}>
-                      {busy ? <Spinner /> : <Icon.personPlus width="18" height="18" />} {busy ? 'Verifying…' : isNewUser ? 'Create associate account' : 'Verify & sign in'} <Icon.chevron />
-                    </button>
+                    {isNewUser && (
+                      <div className="mt-6 flex items-start gap-2.5 rounded-xl bg-brand-50 p-3.5">
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-100 text-brand-600"><Icon.gift /></span>
+                        <p className="text-xs leading-relaxed text-brand-800">
+                          After verifying you will complete KYC: personal &amp; PAN details, 4 documents and payout bank —
+                          then submit for admin review.
+                        </p>
+                      </div>
+                    )}
 
-                    <div className="flex items-center justify-between text-sm">
-                      <button type="button" className="font-medium text-slate-500 hover:text-slate-700" onClick={() => { setStage('phone'); setOtp(''); }}>
-                        ← Change number
-                      </button>
-                      {cooldown > 0 ? (
-                        <span className="text-slate-400">Resend OTP in {mm}:{ss}</span>
-                      ) : (
-                        <button type="button" disabled={busy} onClick={(e) => sendOtp(e, true)} className="font-semibold text-brand-700 hover:underline">
-                          Resend OTP
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {isNewUser && (
-                  <div className="mt-6 flex items-start gap-2.5 rounded-xl bg-brand-50 p-3.5">
-                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-100 text-brand-600"><Icon.gift /></span>
-                    <p className="text-xs leading-relaxed text-brand-800">
-                      After verifying you’ll be taken to KYC: personal &amp; PAN details, 4 documents and payout bank —
-                      then submit for admin review.
+                    <p className="mt-5 text-center text-sm text-slate-500">
+                      Already an associate?{' '}
+                      <Link to="/associate/login" className="font-semibold text-brand-700 hover:underline">Sign in</Link>
                     </p>
-                  </div>
+                  </>
                 )}
-
-                <p className="mt-5 text-center text-sm text-slate-500">
-                  Already an associate?{' '}
-                  <Link to="/associate/login" className="font-semibold text-brand-700 hover:underline">Sign in</Link>
-                </p>
               </div>
             </div>
           </div>

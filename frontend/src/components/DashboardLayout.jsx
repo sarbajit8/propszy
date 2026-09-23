@@ -125,6 +125,7 @@ function SidebarNav({ groups, pathname, onNavigate }) {
 }
 
 function SidebarShell({ area, groups, pathname, user, onNavigate, dispatch, navigate }) {
+  const isAgent = area === 'associate';
   return (
     <div className="flex h-full flex-col bg-slate-900">
       <div className="flex h-16 shrink-0 items-center gap-2 px-4">
@@ -136,6 +137,18 @@ function SidebarShell({ area, groups, pathname, user, onNavigate, dispatch, navi
       <div className="flex-1 overflow-y-auto px-3 pb-4">
         <SidebarNav groups={groups} pathname={pathname} onNavigate={onNavigate} />
       </div>
+      {isAgent && (
+        <div className="shrink-0 border-t border-white/10 px-3 py-2">
+          <Link
+            to="/account"
+            onClick={onNavigate}
+            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white transition-colors"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>
+            Switch to User Dashboard
+          </Link>
+        </div>
+      )}
       <div className="shrink-0 border-t border-white/10 p-3">
         <div className="flex items-center gap-2.5 rounded-lg px-2 py-2">
           <img src={user?.avatarUrl || avatarPlaceholder(user?.name)} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-white/20" />
@@ -211,6 +224,11 @@ export default function DashboardLayout({ area }) {
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
+              {area === 'associate' && (
+                <Link to="/account" className="hidden items-center gap-1.5 rounded-lg bg-brand-50 px-3 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-100 sm:flex">
+                  <Icon.grid /> User Dashboard
+                </Link>
+              )}
               <Link to="/" className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100 sm:flex">
                 <Icon.home /> Back to site
               </Link>

@@ -67,8 +67,8 @@ npm run dev                   # http://localhost:5173
 > `prisma migrate deploy` to apply it. For future schema changes run `prisma migrate dev`
 > in a real terminal.
 
-Default admin after seed: `admin@propszy.com` / `Admin@12345`
-Demo agents: `agent@propszy.com` (code `RAVI2026`) → `subagent@propszy.com` (`NEHA2026`), password `Admin@12345`.
+Default admin after seed: `admin@propszy.test` / `Admin@12345`
+Demo agents: `agent@propszy.test` (code `RAVI2026`) → `subagent@propszy.test` (`NEHA2026`), password `Admin@12345`.
 
 ## API keys — add them from the app
 
@@ -102,3 +102,7 @@ chain). See [docs/PROGRESS.md](docs/PROGRESS.md).
 5. Reports/exports, dashboards, notifications, mobile QA
 
 See [docs/PROGRESS.md](docs/PROGRESS.md) for module status.
+
+
+
+

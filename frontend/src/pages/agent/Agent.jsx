@@ -53,7 +53,7 @@ export function AgentOverview() {
   const approved = user?.kycStatus === 'APPROVED';
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold">Agent dashboard</h1>
+      <h1 className="text-xl font-bold">Associate dashboard</h1>
 
       <KycGate />
 
