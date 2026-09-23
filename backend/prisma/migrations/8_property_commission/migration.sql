@@ -1,3 +1,3 @@
 -- AlterTable
-ALTER TABLE `property` ADD COLUMN `commissionScheme` JSON NULL;
+ALTER TABLE `Property` ADD COLUMN `commissionScheme` JSON NULL;
 

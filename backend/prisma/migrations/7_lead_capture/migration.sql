@@ -1,8 +1,8 @@
 -- DropForeignKey
-ALTER TABLE `lead` DROP FOREIGN KEY `Lead_projectId_fkey`;
+ALTER TABLE `Lead` DROP FOREIGN KEY `Lead_projectId_fkey`;
 
 -- AlterTable
-ALTER TABLE `lead` ADD COLUMN `bedroomsWanted` INTEGER NULL,
+ALTER TABLE `Lead` ADD COLUMN `bedroomsWanted` INTEGER NULL,
     ADD COLUMN `budgetMax` DECIMAL(14, 2) NULL,
     ADD COLUMN `budgetMin` DECIMAL(14, 2) NULL,
     ADD COLUMN `guestAadhaar` VARCHAR(191) NULL,

@@ -1,3 +1,3 @@
 -- AlterTable
-ALTER TABLE `project` ADD COLUMN `possessionDate` DATETIME(3) NULL;
+ALTER TABLE `Project` ADD COLUMN `possessionDate` DATETIME(3) NULL;
 

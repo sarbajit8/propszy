@@ -1,5 +1,5 @@
 -- AlterTable
-ALTER TABLE `post` ADD COLUMN `category` VARCHAR(191) NULL,
+ALTER TABLE `Post` ADD COLUMN `category` VARCHAR(191) NULL,
     ADD COLUMN `tags` JSON NULL;
 
 -- CreateIndex

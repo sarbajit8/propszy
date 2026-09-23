@@ -1,10 +1,10 @@
 -- AlterTable
-ALTER TABLE `project` ADD COLUMN `isBestSeller` BOOLEAN NOT NULL DEFAULT false,
+ALTER TABLE `Project` ADD COLUMN `isBestSeller` BOOLEAN NOT NULL DEFAULT false,
     ADD COLUMN `isFeatured` BOOLEAN NOT NULL DEFAULT false,
     ADD COLUMN `isTrending` BOOLEAN NOT NULL DEFAULT false;
 
 -- AlterTable
-ALTER TABLE `property` ADD COLUMN `isBestSeller` BOOLEAN NOT NULL DEFAULT false,
+ALTER TABLE `Property` ADD COLUMN `isBestSeller` BOOLEAN NOT NULL DEFAULT false,
     ADD COLUMN `isFeatured` BOOLEAN NOT NULL DEFAULT false,
     ADD COLUMN `isTrending` BOOLEAN NOT NULL DEFAULT false,
     ADD COLUMN `soldCount` INTEGER NOT NULL DEFAULT 0;
