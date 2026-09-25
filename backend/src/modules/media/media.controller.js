@@ -105,4 +105,15 @@ const deleteMedia = asyncHandler(async (req, res) => {
   return ok(res, { deleted: true });
 });
 
-module.exports = { upload, updateMedia, reorder, deleteMedia };
+// POST /media/image or /media/video (multipart: file) -> { url, key, size }
+const uploadSingle = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    throw ApiError.badRequest('No file uploaded or file format not supported.');
+  }
+  const rawFolder = (req.query?.folder || req.body?.folder || 'properties').replace(/[^a-z0-9/_-]/gi, '');
+  const folder = rawFolder || 'properties';
+  const saved = await storage.save(req.file, folder, req);
+  return created(res, { url: saved.url, key: saved.key, size: saved.size });
+});
+
+module.exports = { upload, uploadSingle, updateMedia, reorder, deleteMedia };

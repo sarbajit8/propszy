@@ -10,6 +10,8 @@ const router = Router();
 router.use(authenticate);
 
 router.post('/upload', uploader('any').array('files', 20), ctrl.upload);
+router.post('/image', uploader('image').single('file'), ctrl.uploadSingle);
+router.post('/video', uploader('video').single('file'), ctrl.uploadSingle);
 router.patch('/reorder', ctrl.reorder);
 router.patch('/:id', ctrl.updateMedia);
 router.delete('/:id', ctrl.deleteMedia);

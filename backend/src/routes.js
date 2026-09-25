@@ -14,7 +14,6 @@ router.use('/me', require('./modules/me/me.routes'));
 router.use('/projects', require('./modules/projects/project.routes'));
 router.use('/properties', require('./modules/properties/property.routes'));
 router.use('/media', require('./modules/media/media.routes'));
-router.use('/uploads', require('./modules/uploads/upload.routes'));
 router.use('/amenities', require('./modules/amenities/amenity.routes'));
 router.use('/favorites', require('./modules/favorites/favorite.routes'));
 router.use('/leads', require('./modules/leads/lead.routes'));

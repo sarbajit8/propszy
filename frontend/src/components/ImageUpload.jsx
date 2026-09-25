@@ -15,7 +15,7 @@ export default function ImageUpload({ value, onChange, folder = 'cms', className
       const fd = new FormData();
       fd.append('folder', folder);
       fd.append('file', file);
-      const { data } = await api.post(`/uploads/image?folder=${encodeURIComponent(folder)}`, fd);
+      const { data } = await api.post(`/media/image?folder=${encodeURIComponent(folder)}`, fd);
       onChange(data.data.url);
     } catch (e) {
       toast.error(apiError(e));

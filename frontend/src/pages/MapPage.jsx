@@ -47,20 +47,17 @@ function MapProjectCard({ p, active, onHover, onLeave, onClick, cardRef }) {
 
 export default function MapPage() {
   const [sp, setSp] = useSearchParams();
-  const { data: cfg } = usePublicConfig();
-  const defaultState = cfg?.defaultState || 'West Bengal';
-  const defaultCity = cfg?.defaultCity || '';
 
   const q = Object.fromEntries(sp.entries());
 
-  // Default state to West Bengal (or admin setting) when not explicitly overridden in URL
-  const effectiveState = q.state !== undefined ? q.state : defaultState;
-  const effectiveCity = q.city !== undefined ? q.city : (q.state === undefined ? defaultCity : '');
+  // Do not force any default state or city (e.g. Kolkata/West Bengal)
+  const effectiveState = q.state || '';
+  const effectiveCity = q.city || '';
 
   const { data: cities = [] } = useCities();
 
   const states = useMemo(() => {
-    const set = new Set(['West Bengal']);
+    const set = new Set();
     cities.forEach((c) => {
       if (c.state) set.add(c.state);
     });
@@ -111,7 +108,7 @@ export default function MapPage() {
   const withCoords = useMemo(() => pins.filter((p) => p.lat && p.lng), [pins]);
   const featuredUnits = featured?.data || [];
   const activeFilters = [
-    effectiveState && effectiveState !== defaultState ? 'state' : null,
+    effectiveState ? 'state' : null,
     effectiveCity ? 'city' : null,
     q.q ? 'q' : null,
     q.type ? 'type' : null,
@@ -199,18 +196,13 @@ export default function MapPage() {
             <input type="checkbox" checked={q.featured === 'true'} onChange={(e) => setParam('featured', e.target.checked ? 'true' : '')} />
             <span>Featured only</span>
           </label>
-          {(activeFilters.length > 0 || (effectiveState && effectiveState === defaultState)) && (
+          {activeFilters.length > 0 && (
             <button
               type="button"
               className="btn-ghost text-xs text-rose-600 font-semibold"
-              onClick={() => {
-                const next = new URLSearchParams(sp);
-                next.set('state', '');
-                next.delete('city');
-                setSp(next);
-              }}
+              onClick={() => setSp(new URLSearchParams())}
             >
-              Clear filters ✕
+              Clear filters ({activeFilters.length}) ✕
             </button>
           )}
         </div>
@@ -224,7 +216,7 @@ export default function MapPage() {
                 <MapView
                   pins={withCoords}
                   height="100%"
-                  zoom={11}
+                  zoom={effectiveCity ? 12 : 5}
                   activeId={activeId}
                   panTo={selected ? { lat: Number(selected.lat), lng: Number(selected.lng) } : undefined}
                   onSelect={onMarkerSelect}

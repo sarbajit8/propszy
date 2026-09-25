@@ -25,45 +25,45 @@ function DeveloperCard({ dev }) {
   const p = projects[Math.min(active, projects.length - 1)];
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card transition duration-300 hover:-translate-y-0.5 hover:shadow-xl">
-      <div className="p-5">
-        <div className="flex items-center gap-3.5">
-          <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-gradient-to-br from-brand-50 to-brand-100 ring-1 ring-slate-200/70">
+      <div className="p-3.5 sm:p-5">
+        <div className="flex items-center gap-3 sm:gap-3.5">
+          <span className="grid h-11 w-11 sm:h-14 sm:w-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-gradient-to-br from-brand-50 to-brand-100 ring-1 ring-slate-200/70">
             {dev.logoUrl
-              ? <img src={dev.logoUrl} alt="" className="h-full w-full object-contain p-1.5" />
-              : <span className="text-base font-extrabold text-brand-700">{initials(dev.name)}</span>}
+              ? <img src={dev.logoUrl} alt="" className="h-full w-full object-contain p-1 sm:p-1.5" />
+              : <span className="text-sm sm:text-base font-extrabold text-brand-700">{initials(dev.name)}</span>}
           </span>
           <div className="min-w-0 flex-1">
-            <h3 className="truncate text-[15px] font-bold text-slate-900">{dev.name}</h3>
-            <div className="mt-1.5 flex items-center gap-3">
+            <h3 className="truncate text-sm sm:text-[15px] font-bold text-slate-900">{dev.name}</h3>
+            <div className="mt-1 sm:mt-1.5 flex items-center gap-2.5 sm:gap-3">
               {dev.foundedYear && (
                 <>
-                  <span className="text-sm font-bold text-slate-900">
+                  <span className="text-xs sm:text-sm font-bold text-slate-900">
                     {dev.foundedYear}
-                    <span className="ml-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">Est.</span>
+                    <span className="ml-1 text-[9px] sm:text-[10px] font-medium uppercase tracking-wide text-slate-400">Est.</span>
                   </span>
                   <span className="h-3 w-px bg-slate-200" />
                 </>
               )}
-              <span className="text-sm font-bold text-slate-900">
+              <span className="text-xs sm:text-sm font-bold text-slate-900">
                 {dev.projectCount ?? dev.count}
-                <span className="ml-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">Projects</span>
+                <span className="ml-1 text-[9px] sm:text-[10px] font-medium uppercase tracking-wide text-slate-400">Projects</span>
               </span>
             </div>
           </div>
         </div>
         {dev.description && (
-          <p className="mt-3.5 line-clamp-2 text-[13px] leading-relaxed text-slate-500">{dev.description}</p>
+          <p className="mt-2.5 sm:mt-3.5 line-clamp-2 text-xs sm:text-[13px] leading-relaxed text-slate-500">{dev.description}</p>
         )}
       </div>
 
       {projects.length > 0 && p && (
         <div className="mt-auto">
-          <div className="flex gap-4 overflow-x-auto border-t border-slate-100 px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex gap-3 sm:gap-4 overflow-x-auto border-t border-slate-100 px-3.5 sm:px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {projects.map((pr, i) => (
               <button
                 key={pr.id}
                 onClick={() => setActive(i)}
-                className={`relative shrink-0 whitespace-nowrap py-2.5 text-xs font-semibold transition ${
+                className={`relative shrink-0 whitespace-nowrap py-2 sm:py-2.5 text-xs font-semibold transition ${
                   i === active ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'
                 }`}
               >
@@ -80,12 +80,12 @@ function DeveloperCard({ dev }) {
               className="aspect-[16/10] w-full object-cover transition duration-700 group-hover/img:scale-105"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/10 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 p-4 text-white">
-              <p className="line-clamp-1 text-[15px] font-bold drop-shadow">{p.name}</p>
-              <p className="mt-0.5 line-clamp-1 text-xs text-white/70">{[p.address, p.city].filter(Boolean).join(', ')}</p>
-              <div className="mt-1.5 flex items-center justify-between">
-                <span className="text-sm font-bold">{priceRange(p.priceMin, p.priceMax)}</span>
-                <span className="text-xs font-semibold text-white/0 transition group-hover/img:text-white/90">View →</span>
+            <div className="absolute inset-x-0 bottom-0 p-3 sm:p-4 text-white">
+              <p className="line-clamp-1 text-sm sm:text-[15px] font-bold drop-shadow">{p.name}</p>
+              <p className="mt-0.5 line-clamp-1 text-[11px] sm:text-xs text-white/70">{[p.address, p.city].filter(Boolean).join(', ')}</p>
+              <div className="mt-1 sm:mt-1.5 flex items-center justify-between">
+                <span className="text-xs sm:text-sm font-bold">{priceRange(p.priceMin, p.priceMax)}</span>
+                <span className="text-[11px] sm:text-xs font-semibold text-white/0 transition group-hover/img:text-white/90">View →</span>
               </div>
             </div>
           </Link>
@@ -103,12 +103,16 @@ function Band({ tint, children }) {
 
 function Head({ title, subtitle, to, toLabel = 'View all' }) {
   return (
-    <div className="mb-5 flex items-end justify-between gap-4">
-      <div>
-        <h2 className="text-xl font-bold sm:text-[22px]">{title}</h2>
-        {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
+    <div className="mb-4 sm:mb-5 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-1.5 sm:gap-4">
+      <div className="min-w-0">
+        <h2 className="text-lg font-bold sm:text-xl md:text-[22px] tracking-tight text-slate-900">{title}</h2>
+        {subtitle && <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-slate-500 line-clamp-2">{subtitle}</p>}
       </div>
-      {to && <Link to={to} className="shrink-0 text-sm font-semibold text-brand-700 hover:underline">{toLabel} →</Link>}
+      {to && (
+        <Link to={to} className="inline-flex self-start sm:self-auto shrink-0 text-xs sm:text-sm font-semibold text-brand-700 hover:underline">
+          {toLabel} →
+        </Link>
+      )}
     </div>
   );
 }
@@ -214,123 +218,141 @@ function HomeMapExplorer() {
   };
 
   return (
-    <div className="container-app py-12">
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+    <div className="container-app py-8 sm:py-12">
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2.5 sm:gap-3">
         <div>
-          <h2 className="text-xl font-bold sm:text-[22px]">Explore projects on the map</h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <h2 className="text-lg font-bold sm:text-xl md:text-[22px] tracking-tight text-slate-900">Explore projects on the map</h2>
+          <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-slate-500">
             {isLoading
               ? 'Loading projects…'
               : `Compare locations and prices across ${withCoords.length} live project${withCoords.length === 1 ? '' : 's'}`}
             {isFetching && !isLoading ? ' · updating…' : ''}
           </p>
         </div>
-        <Link to="/map" className="shrink-0 text-sm font-semibold text-brand-700 hover:underline">
-          Open full map →
-        </Link>
-      </div>
-
-      {/* Filter bar above map matching the reference design */}
-      <div className="mb-5 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-xs">
-        <div className="relative min-w-[200px] flex-1">
-          <input
-            className="input w-full pl-8 text-sm"
-            placeholder="Search project or builder…"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleFilterChange('q', searchInput.trim());
-            }}
-            onBlur={() => handleFilterChange('q', searchInput.trim())}
-          />
-          <svg
-            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <Link to="/map" className="shrink-0 text-xs sm:text-sm font-semibold text-brand-700 hover:underline">
+            Open full map →
+          </Link>
         </div>
-
-        <select
-          className="input max-w-[170px] text-sm"
-          value={filters.city}
-          onChange={(e) => handleFilterChange('city', e.target.value)}
-        >
-          <option value="">All cities</option>
-          {cities.map((c) => (
-            <option key={c.id} value={c.name}>{c.name}</option>
-          ))}
-        </select>
-
-        <select
-          className="input max-w-[150px] text-sm"
-          value={filters.type}
-          onChange={(e) => handleFilterChange('type', e.target.value)}
-        >
-          <option value="">Any type</option>
-          {MAP_TYPES.map((t) => (
-            <option key={t} value={t}>{TYPE_LABEL[t] || t}</option>
-          ))}
-        </select>
-
-        <select
-          className="input max-w-[160px] text-sm"
-          value={filters.status}
-          onChange={(e) => handleFilterChange('status', e.target.value)}
-        >
-          <option value="">Any status</option>
-          {MAP_STATUSES.map((s) => (
-            <option key={s} value={s}>{STATUS_LABEL[s] || s}</option>
-          ))}
-        </select>
-
-        <input
-          className="input max-w-[110px] text-sm"
-          type="number"
-          placeholder="Min ₹"
-          defaultValue={filters.budgetMin}
-          onBlur={(e) => handleFilterChange('budgetMin', e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleFilterChange('budgetMin', e.target.value)}
-        />
-
-        <input
-          className="input max-w-[110px] text-sm"
-          type="number"
-          placeholder="Max ₹"
-          defaultValue={filters.budgetMax}
-          onBlur={(e) => handleFilterChange('budgetMax', e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleFilterChange('budgetMax', e.target.value)}
-        />
-
-        <label className="flex items-center gap-2 px-2 text-sm text-slate-600 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            className="rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-            checked={filters.featured}
-            onChange={(e) => handleFilterChange('featured', e.target.checked)}
-          />
-          <span>Featured only</span>
-        </label>
-
-        {activeCount > 0 && (
-          <button
-            type="button"
-            className="btn-ghost text-xs font-semibold text-rose-600 hover:text-rose-700 cursor-pointer"
-            onClick={handleClearFilters}
-          >
-            Clear ({activeCount}) ✕
-          </button>
-        )}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
-        {/* list */}
-        <div className="flex flex-col">
-          <div className="space-y-2.5 max-h-[408px] overflow-y-auto pr-1.5 overscroll-contain [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300 hover:[&::-webkit-scrollbar-thumb]:bg-slate-400 [&::-webkit-scrollbar-track]:bg-transparent lg:max-h-[460px]">
+      {/* Filter bar */}
+      <div className="mb-4 sm:mb-5 rounded-2xl border border-slate-200 bg-white p-2.5 sm:p-3 shadow-xs">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="relative w-full sm:min-w-[180px] sm:flex-1">
+            <input
+              className="input w-full pl-8 text-xs sm:text-sm"
+              placeholder="Search project or builder…"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleFilterChange('q', searchInput.trim());
+              }}
+              onBlur={() => handleFilterChange('q', searchInput.trim())}
+            />
+            <svg
+              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-400"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+            <select
+              className="input text-xs sm:text-sm sm:max-w-[140px]"
+              value={filters.city}
+              onChange={(e) => handleFilterChange('city', e.target.value)}
+            >
+              <option value="">All cities</option>
+              {cities.map((c) => (
+                <option key={c.id} value={c.name}>{c.name}</option>
+              ))}
+            </select>
+
+            <select
+              className="input text-xs sm:text-sm sm:max-w-[130px]"
+              value={filters.type}
+              onChange={(e) => handleFilterChange('type', e.target.value)}
+            >
+              <option value="">Any type</option>
+              {MAP_TYPES.map((t) => (
+                <option key={t} value={t}>{TYPE_LABEL[t] || t}</option>
+              ))}
+            </select>
+
+            <select
+              className="input text-xs sm:text-sm sm:max-w-[140px]"
+              value={filters.status}
+              onChange={(e) => handleFilterChange('status', e.target.value)}
+            >
+              <option value="">Any status</option>
+              {MAP_STATUSES.map((s) => (
+                <option key={s} value={s}>{STATUS_LABEL[s] || s}</option>
+              ))}
+            </select>
+
+            <div className="flex items-center gap-1.5">
+              <input
+                className="input w-1/2 sm:w-[90px] text-xs sm:text-sm"
+                type="number"
+                placeholder="Min ₹"
+                defaultValue={filters.budgetMin}
+                onBlur={(e) => handleFilterChange('budgetMin', e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleFilterChange('budgetMin', e.target.value)}
+              />
+              <input
+                className="input w-1/2 sm:w-[90px] text-xs sm:text-sm"
+                type="number"
+                placeholder="Max ₹"
+                defaultValue={filters.budgetMax}
+                onBlur={(e) => handleFilterChange('budgetMax', e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleFilterChange('budgetMax', e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between sm:justify-start gap-3 pt-0.5 sm:pt-0">
+            <label className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                className="rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                checked={filters.featured}
+                onChange={(e) => handleFilterChange('featured', e.target.checked)}
+              />
+              <span>Featured only</span>
+            </label>
+
+            {activeCount > 0 && (
+              <button
+                type="button"
+                className="btn-ghost py-1 px-2 text-xs font-semibold text-rose-600 hover:text-rose-700 cursor-pointer"
+                onClick={handleClearFilters}
+              >
+                Clear ({activeCount}) ✕
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[380px_1fr]">
+        {/* Project cards list */}
+        <div className="order-2 lg:order-1 flex flex-col">
+          <div className="mb-2 flex items-center justify-between px-1 text-xs text-slate-500">
+            <span className="font-semibold text-slate-700">
+              {pins.length} project{pins.length === 1 ? '' : 's'} available
+            </span>
+            {withCoords.length > 0 && (
+              <span>{withCoords.length} with map location</span>
+            )}
+          </div>
+
+          <div className="space-y-2.5 max-h-[380px] sm:max-h-[420px] lg:max-h-[480px] overflow-y-auto pr-1 overscroll-contain [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300 hover:[&::-webkit-scrollbar-thumb]:bg-slate-400 [&::-webkit-scrollbar-track]:bg-transparent">
             {isLoading ? (
               <div className="flex h-64 items-center justify-center rounded-xl border border-slate-200 bg-white">
                 <Spinner className="h-6 w-6 text-brand-600" />
@@ -357,23 +379,23 @@ function HomeMapExplorer() {
                   onMouseEnter={() => setHoverId(p.id)}
                   onMouseLeave={() => setHoverId(null)}
                   onClick={() => setSelected(p)}
-                  className={`flex cursor-pointer gap-3 rounded-xl border p-2.5 transition ${
-                    p.id === activeId ? 'border-brand-500 bg-brand-50/60 ring-1 ring-brand-500' : 'border-slate-200 bg-white hover:border-brand-300'
+                  className={`flex cursor-pointer gap-2.5 sm:gap-3 rounded-xl border p-2.5 transition ${
+                    p.id === activeId ? 'border-brand-500 bg-brand-50/60 ring-1 ring-brand-500 shadow-sm' : 'border-slate-200 bg-white hover:border-brand-300'
                   }`}
                 >
                   <img
                     src={p.coverImageUrl || p.media?.[0]?.url || `https://picsum.photos/seed/${p.id}/200/160`}
-                    alt={p.name} loading="lazy" className="h-[72px] w-[88px] shrink-0 rounded-lg object-cover"
+                    alt={p.name} loading="lazy" className="h-[68px] w-[80px] sm:h-[72px] sm:w-[88px] shrink-0 rounded-lg object-cover"
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <Link to={`/projects/${p.slug || p.id}`} className="line-clamp-1 text-sm font-semibold text-slate-900 hover:text-brand-700">{p.name}</Link>
-                      <StatusBadge status={p.status} label={STATUS_LABEL[p.status]} />
+                    <div className="flex items-start justify-between gap-1.5">
+                      <Link to={`/projects/${p.slug || p.id}`} className="line-clamp-1 text-xs sm:text-sm font-semibold text-slate-900 hover:text-brand-700">{p.name}</Link>
+                      <StatusBadge status={p.status} label={STATUS_LABEL[p.status]} className="text-[10px] px-1.5 py-0.5" />
                     </div>
-                    <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">{[p.address, p.city].filter(Boolean).join(', ') || p.city || '—'}</p>
+                    <p className="mt-0.5 line-clamp-1 text-[11px] sm:text-xs text-slate-500">{[p.address, p.city].filter(Boolean).join(', ') || p.city || '—'}</p>
                     <div className="mt-1.5 flex items-center justify-between gap-2">
-                      <span className="truncate text-sm font-semibold text-brand-700">{priceRange(p.priceMin, p.priceMax)}</span>
-                      <span className="shrink-0 text-xs text-slate-400">
+                      <span className="truncate text-xs sm:text-sm font-semibold text-brand-700">{priceRange(p.priceMin, p.priceMax)}</span>
+                      <span className="shrink-0 text-[11px] sm:text-xs text-slate-400">
                         {TYPE_LABEL[p.type] || p.type}{p._count?.properties ? ` · ${p._count.properties} units` : ''}
                       </span>
                     </div>
@@ -382,32 +404,23 @@ function HomeMapExplorer() {
               ))
             )}
           </div>
-          {pins.length > 4 && (
-            <div className="mt-2 flex items-center justify-between px-1 text-xs text-slate-500 lg:hidden">
-              <span>Showing 4 of {pins.length} projects</span>
-              <span className="flex items-center gap-1 font-medium text-brand-600">
-                <span>Scroll inside to view more</span>
-                <svg className="h-3.5 w-3.5 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                </svg>
-              </span>
-            </div>
-          )}
         </div>
 
-        {/* map */}
-        <div className="overflow-hidden rounded-2xl">
-          <MapView
-            pins={withCoords}
-            height={460}
-            zoom={11}
-            activeId={activeId}
-            panTo={selected ? { lat: selected.lat, lng: selected.lng } : undefined}
-            onSelect={(p) => {
-              setSelected(p || null);
-              if (p) cardRefs.current[p.id]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }}
-          />
+        {/* Map view */}
+        <div className="order-1 lg:order-2">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs h-[300px] sm:h-[380px] lg:h-[480px]">
+            <MapView
+              pins={withCoords}
+              height="100%"
+              zoom={filters.city ? 12 : 5}
+              activeId={activeId}
+              panTo={selected ? { lat: Number(selected.lat), lng: Number(selected.lng) } : undefined}
+              onSelect={(p) => {
+                setSelected(p || null);
+                if (p) cardRefs.current[p.id]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }}
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -473,16 +486,12 @@ const QUICK_CATEGORIES = [
 
 function HomeQuickCategories() {
   const scrollRef = useRef(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
   const [scrollProgress, setScrollProgress] = useState(0);
 
   const checkScroll = () => {
     const el = scrollRef.current;
     if (!el) return;
     const { scrollLeft, scrollWidth, clientWidth } = el;
-    setCanScrollLeft(scrollLeft > 10);
-    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
     const max = scrollWidth - clientWidth;
     setScrollProgress(max > 0 ? scrollLeft / max : 0);
   };
@@ -493,93 +502,46 @@ function HomeQuickCategories() {
     return () => window.removeEventListener('resize', checkScroll);
   }, []);
 
-  const scroll = (direction) => {
-    if (scrollRef.current) {
-      const offset = direction * (scrollRef.current.clientWidth * 0.7);
-      scrollRef.current.scrollBy({ left: offset, behavior: 'smooth' });
-    }
-  };
-
   return (
-    <div className="border-b border-slate-100 bg-gradient-to-b from-white via-slate-50/50 to-white py-4 sm:py-6">
+    <div className="border-b border-slate-100 bg-gradient-to-b from-white via-slate-50/50 to-white py-3.5 sm:py-6 overflow-hidden">
       <div className="container-app relative">
-        {/* Left Arrow Button (Mobile / Tablet Slider) */}
-        {canScrollLeft && (
-          <button
-            type="button"
-            onClick={() => scroll(-1)}
-            className="absolute -left-2 top-1/2 z-20 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-slate-700 shadow-md backdrop-blur-sm transition hover:bg-brand-50 hover:text-brand-600 sm:hidden"
-            aria-label="Scroll left"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-        )}
-
-        {/* Right Arrow Button (Mobile / Tablet Slider) */}
-        {canScrollRight && (
-          <button
-            type="button"
-            onClick={() => scroll(1)}
-            className="absolute -right-2 top-1/2 z-20 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-slate-700 shadow-md backdrop-blur-sm transition hover:bg-brand-50 hover:text-brand-600 sm:hidden"
-            aria-label="Scroll right"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-        )}
-
-        {/* Left Edge Fade Mask */}
-        {canScrollLeft && (
-          <div className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-r from-white via-white/80 to-transparent sm:hidden" />
-        )}
-
-        {/* Right Edge Fade Mask */}
-        {canScrollRight && (
-          <div className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-l from-white via-white/80 to-transparent sm:hidden" />
-        )}
-
         {/* Categories container: Smooth horizontal slider on mobile, responsive grid on sm+ */}
         <div
           ref={scrollRef}
           onScroll={checkScroll}
-          className="flex gap-2.5 overflow-x-auto scroll-smooth pb-1 pt-1.5 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-4 sm:gap-3.5 sm:overflow-visible lg:grid-cols-8"
+          className="-mx-4 flex gap-2.5 overflow-x-auto px-4 scroll-smooth pb-1 pt-1.5 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:grid-cols-4 sm:gap-3.5 sm:overflow-visible sm:px-0 lg:grid-cols-8"
         >
           {QUICK_CATEGORIES.map((c) => (
             <Link
               key={c.label}
               to={c.to}
-              className="group relative flex w-[104px] shrink-0 snap-start flex-col items-center justify-between rounded-2xl border border-slate-200/80 bg-white p-3 text-center shadow-2xs transition-all duration-300 hover:-translate-y-1 hover:border-brand-300 hover:bg-gradient-to-b hover:from-white hover:to-brand-50/40 hover:shadow-md hover:shadow-brand-500/10 active:scale-95 sm:w-auto"
+              className="group relative flex w-[88px] shrink-0 snap-start flex-col items-center justify-between rounded-2xl border border-slate-200/80 bg-white p-2.5 sm:p-3 text-center shadow-2xs transition-all duration-300 hover:-translate-y-1 hover:border-brand-300 hover:bg-gradient-to-b hover:from-white hover:to-brand-50/40 hover:shadow-md hover:shadow-brand-500/10 active:scale-95 sm:w-auto"
             >
               {c.badge && (
                 <span
-                  className={`absolute -top-1.5 right-1.5 rounded-full px-1.5 py-0.2 text-[9px] font-extrabold uppercase tracking-wider text-white shadow-xs ${c.badgeColor}`}
+                  className={`absolute -top-1.5 right-1 rounded-full px-1.5 py-0.2 text-[8px] sm:text-[9px] font-extrabold uppercase tracking-wider text-white shadow-xs ${c.badgeColor}`}
                 >
                   {c.badge}
                 </span>
               )}
 
-              <span className="grid h-12 w-12 sm:h-13 sm:w-13 place-items-center rounded-2xl bg-gradient-to-br from-brand-50 via-purple-50/60 to-brand-100/70 text-brand-600 ring-1 ring-brand-500/15 transition-all duration-300 group-hover:scale-110 group-hover:from-brand-600 group-hover:to-brand-700 group-hover:text-white group-hover:shadow-md group-hover:shadow-brand-500/30">
+              <span className="grid h-10 w-10 sm:h-12 sm:w-12 place-items-center rounded-2xl bg-gradient-to-br from-brand-50 via-purple-50/60 to-brand-100/70 text-brand-600 ring-1 ring-brand-500/15 transition-all duration-300 group-hover:scale-110 group-hover:from-brand-600 group-hover:to-brand-700 group-hover:text-white group-hover:shadow-md group-hover:shadow-brand-500/30">
                 <svg
-                  width="22"
-                  height="22"
+                  className="h-5 w-5 sm:h-[22px] sm:w-[22px] transition-transform duration-300 group-hover:rotate-3"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="1.8"
-                  className="transition-transform duration-300 group-hover:rotate-3"
                 >
                   <path d={c.p} strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </span>
 
-              <div className="mt-2.5 w-full">
-                <span className="block truncate text-xs sm:text-[13px] font-bold text-slate-800 transition-colors group-hover:text-brand-700">
+              <div className="mt-2 w-full">
+                <span className="block truncate text-[11px] sm:text-[13px] font-bold text-slate-800 transition-colors group-hover:text-brand-700">
                   {c.label}
                 </span>
-                <span className="mt-0.5 block truncate text-[10px] text-slate-400 transition-colors group-hover:text-brand-600 font-medium">
+                <span className="mt-0.5 block truncate text-[9px] sm:text-[10px] text-slate-400 transition-colors group-hover:text-brand-600 font-medium">
                   {c.sub}
                 </span>
               </div>
@@ -657,13 +619,13 @@ export default function Home() {
 
       {/* Explore cities — slider (right below hero) */}
       {topCities.length > 0 && (
-        <div className="container-app py-10">
+        <div className="container-app py-8 sm:py-10">
           <Head
             title="Explore top cities"
             subtitle="Discover homes in India’s most sought-after locations"
             to="/projects"
           />
-          <Scroller itemClass="w-[158px] sm:w-[200px]">
+          <Scroller itemClass="w-[145px] sm:w-[200px]">
             {topCities.slice(0, 12).map((c) => (
               <Link
                 key={c.name}
@@ -679,13 +641,13 @@ export default function Home() {
                   className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 p-3.5 text-white">
+                <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 p-3 sm:p-3.5 text-white">
                   <div className="min-w-0">
-                    <p className="line-clamp-1 text-[15px] font-bold drop-shadow">{c.name}</p>
-                    <p className="text-xs text-white/70">{c.count} {c.count === 1 ? 'project' : 'projects'}</p>
+                    <p className="line-clamp-1 text-sm sm:text-[15px] font-bold drop-shadow">{c.name}</p>
+                    <p className="text-[11px] sm:text-xs text-white/70">{c.count} {c.count === 1 ? 'project' : 'projects'}</p>
                   </div>
-                  <span className="grid h-7 w-7 shrink-0 translate-y-1 place-items-center rounded-full bg-white/15 text-white opacity-0 backdrop-blur-sm transition duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <span className="grid h-6 w-6 sm:h-7 sm:w-7 shrink-0 translate-y-1 place-items-center rounded-full bg-white/15 text-white opacity-0 backdrop-blur-sm transition duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+                    <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                       <path d="M7 17L17 7M17 7H8M17 7v9" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </span>
@@ -698,7 +660,7 @@ export default function Home() {
 
       {/* Recommended properties */}
       {recProps && (
-        <div className="container-app py-10">
+        <div className="container-app py-8 sm:py-10">
           <Head title="Recommended properties" subtitle="Handpicked units ready to enquire" to="/properties" />
           {cardRow(recProps)}
         </div>
@@ -707,7 +669,7 @@ export default function Home() {
       {/* Recommended projects */}
       {recProjects && (
         <Band tint="bg-white">
-          <div className="container-app py-10">
+          <div className="container-app py-8 sm:py-10">
             <Head
               title="Recommended Projects"
               subtitle={`The most searched projects${cities[0]?.name ? ` in ${cities[0].name}` : ''}`}
@@ -724,19 +686,19 @@ export default function Home() {
       {/* Newly launched projects */}
       {newLaunch && newLaunch.items.length > 0 && (
         <Band tint="bg-gradient-to-b from-brand-50/70 via-white to-white">
-          <div className="container-app py-12">
-            <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+          <div className="container-app py-8 sm:py-12">
+            <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 sm:gap-4">
               <div>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-100 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-brand-700">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6 4.5 2.3 7.1-6.3-4.6L5.7 21 8 13.9 2 9.4h7.6z" /></svg>
                   Just launched
                 </span>
-                <h2 className="mt-2 text-xl font-bold sm:text-[22px]">Newly launched projects</h2>
-                <p className="mt-1 text-sm text-slate-500">Priority access to pre-launch pricing and inventory</p>
+                <h2 className="mt-2 text-lg font-bold sm:text-xl md:text-[22px] tracking-tight">Newly launched projects</h2>
+                <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-slate-500">Priority access to pre-launch pricing and inventory</p>
               </div>
-              <Link to="/projects?status=UPCOMING" className="btn-outline shrink-0">Explore all launches →</Link>
+              <Link to="/projects?status=UPCOMING" className="btn-outline self-start sm:self-auto shrink-0 text-xs sm:text-sm">Explore all launches →</Link>
             </div>
-            <Scroller itemClass="w-[240px] sm:w-[280px]">
+            <Scroller itemClass="w-[230px] sm:w-[280px]">
               {newLaunch.items.slice(0, 12).map((p) => (
                 <ProjectCard key={p.id} project={p} variant="recommended" tag="New launch" />
               ))}
@@ -752,27 +714,27 @@ export default function Home() {
         const cols = [ranked.slice(0, half), ranked.slice(half)];
         return (
           <Band tint="bg-slate-900">
-            <div className="container-app py-14">
-              <div className="grid gap-10 lg:grid-cols-[0.9fr_1.4fr] lg:items-center">
+            <div className="container-app py-10 sm:py-14">
+              <div className="grid gap-8 lg:grid-cols-[0.9fr_1.4fr] lg:items-center">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-400">Market pulse</p>
-                  <h2 className="mt-2 text-2xl font-bold text-white sm:text-3xl">Demand across India</h2>
-                  <p className="mt-3 max-w-sm text-sm leading-relaxed text-slate-400">
+                  <h2 className="mt-2 text-xl font-bold text-white sm:text-2xl lg:text-3xl">Demand across India</h2>
+                  <p className="mt-2 sm:mt-3 max-w-sm text-xs sm:text-sm leading-relaxed text-slate-400">
                     Where homebuyers are most active right now. Switch segments to compare apartments,
                     plots and commercial.
                   </p>
-                  <div className="mt-5 inline-flex rounded-full bg-white/10 p-1">
+                  <div className="mt-4 sm:mt-5 inline-flex max-w-full overflow-x-auto rounded-full bg-white/10 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     {[['RESIDENTIAL', 'Apartments'], ['PLOT', 'Plots'], ['COMMERCIAL', 'Commercial']].map(([v, l]) => (
                       <button key={v} onClick={() => setDemandTab(v)}
-                        className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition ${
+                        className={`rounded-full px-3 sm:px-3.5 py-1 sm:py-1.5 text-xs sm:text-sm font-semibold transition whitespace-nowrap ${
                           demandTab === v ? 'bg-white text-slate-900' : 'text-slate-300 hover:text-white'
                         }`}>
                         {l}
                       </button>
                     ))}
                   </div>
-                  <div className="mt-6">
-                    <Link to="/projects" className="text-sm font-semibold text-brand-300 hover:text-brand-200">
+                  <div className="mt-4 sm:mt-6">
+                    <Link to="/projects" className="text-xs sm:text-sm font-semibold text-brand-300 hover:text-brand-200">
                       Browse all cities →
                     </Link>
                   </div>
@@ -786,15 +748,15 @@ export default function Home() {
                         return (
                           <li key={c.name}>
                             <Link to={`/projects?city=${enc(c.name)}&type=${demandTab}`}
-                              className="group flex items-center gap-4 py-3.5">
-                              <span className="w-7 shrink-0 text-lg font-bold tabular-nums text-white/25 group-hover:text-brand-400">
+                              className="group flex items-center gap-3 py-2.5 sm:py-3.5 text-xs sm:text-sm">
+                              <span className="w-6 sm:w-7 shrink-0 text-base sm:text-lg font-bold tabular-nums text-white/25 group-hover:text-brand-400">
                                 {String(n).padStart(2, '0')}
                               </span>
                               <span className="flex-1 truncate font-semibold text-white group-hover:text-brand-300">{c.name}</span>
-                              <span className="shrink-0 text-sm text-slate-400">
-                                {c.count} project{c.count === 1 ? '' : 's'}
+                              <span className="shrink-0 text-slate-400 text-xs sm:text-sm">
+                                {c.count} {c.count === 1 ? 'proj' : 'projects'}
                               </span>
-                              <svg className="h-4 w-4 shrink-0 text-slate-600 transition group-hover:translate-x-0.5 group-hover:text-brand-400"
+                              <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-slate-600 transition group-hover:translate-x-0.5 group-hover:text-brand-400"
                                 viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                 <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
                               </svg>
@@ -814,20 +776,20 @@ export default function Home() {
       {/* Prominent builders */}
       {builders.length > 0 && (
         <Band tint="bg-slate-50/70">
-        <div className="container-app py-12">
+        <div className="container-app py-8 sm:py-12">
           <Head title="Prominent real-estate builders" subtitle="Trusted developers with a proven track record" to="/projects" />
           {builders.some((b) => (b.projects || []).length) ? (
-            <Scroller itemClass="w-[290px] sm:w-[340px]">
+            <Scroller itemClass="w-[260px] sm:w-[340px]">
               {builders.slice(0, 10).map((b) => <DeveloperCard key={b.slug || b.name} dev={b} />)}
             </Scroller>
           ) : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {builders.slice(0, 8).map((b) => (
-                <Link key={b.name} to={`/projects?builder=${enc(b.name)}`} className="card flex items-center gap-3 p-4 hover:shadow-md">
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-brand-50 text-sm font-bold text-brand-700">{initials(b.name)}</span>
+                <Link key={b.name} to={`/projects?builder=${enc(b.name)}`} className="card flex items-center gap-2.5 sm:gap-3 p-3 sm:p-4 hover:shadow-md">
+                  <span className="grid h-9 w-9 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-lg bg-brand-50 text-xs sm:text-sm font-bold text-brand-700">{initials(b.name)}</span>
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold">{b.name}</span>
-                    <span className="text-xs text-slate-400">{b.count} project{b.count === 1 ? '' : 's'}</span>
+                    <span className="block truncate text-xs sm:text-sm font-semibold">{b.name}</span>
+                    <span className="text-[11px] sm:text-xs text-slate-400">{b.count} project{b.count === 1 ? '' : 's'}</span>
                   </span>
                 </Link>
               ))}
@@ -840,7 +802,7 @@ export default function Home() {
       {/* remaining curated sliders */}
       {restSections.map((s, i) => (
         <Band key={s.key} tint={i % 2 === 0 ? 'bg-white' : ''}>
-          <div className="container-app py-10">
+          <div className="container-app py-8 sm:py-10">
             <Head title={s.title} subtitle={s.subtitle} to={s.kind === 'properties' ? '/properties' : '/projects'} />
             {cardRow(s)}
           </div>
@@ -849,11 +811,11 @@ export default function Home() {
 
       {/* Blog */}
       {t.blog !== false && posts.length > 0 && (
-        <div className="container-app py-12">
+        <div className="container-app py-8 sm:py-12">
           <Head title="Top reads on home buying" subtitle="Guides for buyers and investors" to="/blog" toLabel="All articles" />
           <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
             <BlogCard post={posts[0]} variant="featured" />
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-4 sm:gap-5">
               {posts.slice(1, 5).map((p) => <BlogCard key={p.id} post={p} variant="compact" />)}
             </div>
           </div>
@@ -862,35 +824,35 @@ export default function Home() {
 
       {/* Invest in real estate */}
       <div className="container-app py-6 sm:py-8">
-        <div className="relative overflow-hidden rounded-3xl bg-brand-50 p-6 sm:p-10">
-          <div className="grid items-center gap-6 sm:gap-8 lg:grid-cols-[0.9fr_1fr_auto]">
+        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-brand-50 p-4 sm:p-10">
+          <div className="grid items-center gap-5 sm:gap-8 lg:grid-cols-[0.9fr_1fr_auto]">
             <div className="order-1">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600">Your wealth, our priority</p>
-              <h2 className="mt-2 text-2xl font-bold text-slate-900 sm:text-3xl">Invest in real estate</h2>
-              <p className="mt-2 max-w-sm text-sm text-slate-500">
+              <h2 className="mt-2 text-xl font-bold text-slate-900 sm:text-2xl lg:text-3xl">Invest in real estate</h2>
+              <p className="mt-1.5 sm:mt-2 max-w-sm text-xs sm:text-sm text-slate-500">
                 Start small. Grow big. Be a part of premium, verified property projects.
               </p>
               <Link to="/projects" className="btn-primary mt-5 hidden sm:inline-flex">Explore investment plans →</Link>
             </div>
 
             {/* Growth Art - visible on mobile screen as well as desktop */}
-            <div className="order-2 lg:order-3 relative mx-auto flex w-full max-w-[210px] sm:max-w-[250px] lg:max-w-[300px] items-center justify-center py-2 lg:py-0">
+            <div className="order-2 lg:order-3 relative mx-auto flex w-full max-w-[170px] sm:max-w-[240px] lg:max-w-[300px] items-center justify-center py-1 sm:py-2 lg:py-0">
               <InvestArt className="w-full drop-shadow-sm transition-transform duration-300 hover:scale-105" />
             </div>
 
-            <div className="order-3 lg:order-2 space-y-3">
+            <div className="order-3 lg:order-2 space-y-2.5 sm:space-y-3">
               {[
                 { t: 'Flexible SIP plans', d: 'Invest monthly, starting from a small amount', p: 'M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6' },
                 { t: 'Track growth in real time', d: 'Watch your portfolio value update live', p: 'M3 3v18h18M7 15l4-4 3 3 5-6' },
                 { t: 'Withdraw anytime*', d: 'Subject to applicable terms & conditions', p: 'M12 3v12M8 11l4 4 4-4M5 21h14' },
               ].map((f) => (
-                <div key={f.t} className="flex items-start gap-3 rounded-2xl bg-white p-3.5 shadow-card transition hover:shadow-md">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-700">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d={f.p} strokeLinecap="round" strokeLinejoin="round" /></svg>
+                <div key={f.t} className="flex items-start gap-2.5 sm:gap-3 rounded-xl sm:rounded-2xl bg-white p-3 sm:p-3.5 shadow-card transition hover:shadow-md">
+                  <span className="grid h-8 w-8 sm:h-9 sm:w-9 shrink-0 place-items-center rounded-lg sm:rounded-xl bg-brand-50 text-brand-700">
+                    <svg className="h-4 w-4 sm:h-[18px] sm:w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d={f.p} strokeLinecap="round" strokeLinejoin="round" /></svg>
                   </span>
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">{f.t}</p>
-                    <p className="text-xs text-slate-500">{f.d}</p>
+                    <p className="text-xs sm:text-sm font-semibold text-slate-900">{f.t}</p>
+                    <p className="text-[11px] sm:text-xs text-slate-500">{f.d}</p>
                   </div>
                 </div>
               ))}
@@ -898,51 +860,51 @@ export default function Home() {
 
             {/* Mobile CTA button at bottom of section */}
             <div className="order-4 sm:hidden pt-1">
-              <Link to="/projects" className="btn-primary w-full justify-center">Explore investment plans →</Link>
+              <Link to="/projects" className="btn-primary w-full justify-center text-xs sm:text-sm py-2.5">Explore investment plans →</Link>
             </div>
           </div>
         </div>
       </div>
 
       {/* Become an associate — violet band */}
-      <div className="container-app py-8">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-800 via-brand-900 to-[#2a0a52] p-8 text-white sm:p-10">
+      <div className="container-app py-6 sm:py-8">
+        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-brand-800 via-brand-900 to-[#2a0a52] p-5 sm:p-10 text-white">
           <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-brand-500/20 blur-3xl" />
-          <div className="relative grid gap-6 sm:grid-cols-[1fr_auto] sm:items-center">
+          <div className="relative grid gap-5 sm:gap-6 sm:grid-cols-[1fr_auto] sm:items-center">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-300">Together we build opportunities</p>
-              <h2 className="mt-2 text-2xl font-bold text-white sm:text-3xl">Become a Propszy associate</h2>
-              <p className="mt-2 max-w-md text-sm text-white/70">
+              <h2 className="mt-2 text-xl font-bold text-white sm:text-2xl lg:text-3xl">Become a Propszy associate</h2>
+              <p className="mt-1.5 sm:mt-2 max-w-md text-xs sm:text-sm text-white/70">
                 Grow your network, earn attractive commissions and build your future in real estate — with
                 marketing support, training and digital tools.
               </p>
-              <div className="mt-5 flex flex-wrap gap-2">
+              <div className="mt-4 sm:mt-5 flex flex-wrap gap-1.5 sm:gap-2">
                 {['Attractive commission', 'Marketing support', 'Training & guidance', 'Digital tools'].map((t) => (
-                  <span key={t} className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/80">{t}</span>
+                  <span key={t} className="rounded-full bg-white/10 px-2.5 py-0.5 sm:px-3 sm:py-1 text-[11px] sm:text-xs font-medium text-white/80">{t}</span>
                 ))}
               </div>
             </div>
-            <Link to="/become-associate" className="btn bg-white text-brand-800 hover:bg-brand-50">Join as an associate →</Link>
+            <Link to="/become-associate" className="btn bg-white text-brand-800 hover:bg-brand-50 w-full sm:w-auto justify-center text-center text-xs sm:text-sm py-2.5">Join as an associate →</Link>
           </div>
         </div>
       </div>
 
       {/* Newsletter */}
-      <div className="container-app pb-8">
-        <div className="relative overflow-hidden rounded-3xl bg-[#1c0838] p-8 text-white sm:p-10">
+      <div className="container-app pb-6 sm:pb-8">
+        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-[#1c0838] p-5 sm:p-10 text-white">
           <div className="absolute -left-10 bottom-0 h-56 w-56 rounded-full bg-brand-600/25 blur-3xl" />
-          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative flex flex-col gap-4 sm:gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-xl font-bold text-white sm:text-2xl">Stay updated with the best opportunities</h2>
-              <p className="mt-1 text-sm text-white/60">New projects, investment plans and real-estate insights — in your inbox.</p>
+              <h2 className="text-lg font-bold text-white sm:text-xl lg:text-2xl">Stay updated with the best opportunities</h2>
+              <p className="mt-1 text-xs sm:text-sm text-white/60">New projects, investment plans and real-estate insights — in your inbox.</p>
             </div>
             <form
-              className="flex w-full max-w-md gap-2"
+              className="flex w-full max-w-md flex-col sm:flex-row gap-2"
               onSubmit={(e) => { e.preventDefault(); const el = e.currentTarget.elements.email; if (el.value) { e.currentTarget.reset(); el.blur(); } }}
             >
               <input name="email" type="email" required placeholder="Enter your email address"
-                className="flex-1 rounded-xl bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:bg-white/15 focus:outline-none" />
-              <button className="btn bg-brand-600 text-white hover:bg-brand-500">Subscribe</button>
+                className="w-full rounded-xl bg-white/10 px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-white placeholder:text-white/40 focus:bg-white/15 focus:outline-none" />
+              <button className="btn bg-brand-600 text-white hover:bg-brand-500 w-full sm:w-auto justify-center shrink-0 py-2.5 sm:py-3 text-xs sm:text-sm">Subscribe</button>
             </form>
           </div>
         </div>
@@ -951,12 +913,12 @@ export default function Home() {
       {/* Popular cities link grid */}
       {cities.length > 0 && (
         <Band tint="bg-slate-50">
-          <div className="container-app py-12">
+          <div className="container-app py-8 sm:py-12">
             <Head title="Real estate in popular Indian cities" />
-            <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3 lg:grid-cols-6">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm sm:grid-cols-3 lg:grid-cols-6">
               {cities.map((c) => (
                 <Link key={c.name} to={`/projects?city=${enc(c.name)}`}
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 font-medium text-slate-600 hover:border-brand-300 hover:text-brand-700">
+                  className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 font-medium text-slate-600 hover:border-brand-300 hover:text-brand-700 truncate block text-center sm:text-left">
                   Property in {c.name}
                 </Link>
               ))}

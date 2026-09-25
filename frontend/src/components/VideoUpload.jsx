@@ -32,7 +32,7 @@ export default function VideoUpload({
       const fd = new FormData();
       fd.append('folder', folder);
       fd.append('file', file);
-      const { data } = await api.post(`/uploads/video?folder=${encodeURIComponent(folder)}`, fd, {
+      const { data } = await api.post(`/media/video?folder=${encodeURIComponent(folder)}`, fd, {
         onUploadProgress: (e) => {
           if (e.total) {
             const pct = Math.round((e.loaded * 100) / e.total);

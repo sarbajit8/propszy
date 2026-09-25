@@ -8,7 +8,7 @@ function fmtDate(d) {
 
 export function BlogMeta({ post, className = '' }) {
   return (
-    <div className={`flex items-center gap-2 text-xs text-slate-400 ${className}`}>
+    <div className={`flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs text-slate-400 ${className}`}>
       {post.author?.name && (
         <span className="flex items-center gap-1.5 text-slate-500">
           <img

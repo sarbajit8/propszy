@@ -23,11 +23,11 @@ const GROUPS = {
     label: 'Google Maps & Location Defaults',
     fields: {
       apiKey: '',
-      defaultCity: 'Kolkata',
-      defaultState: 'West Bengal',
-      defaultLat: 22.5726,
-      defaultLng: 88.3639,
-      defaultZoom: 11,
+      defaultCity: '',
+      defaultState: '',
+      defaultLat: 20.5937,
+      defaultLng: 78.9629,
+      defaultZoom: 5,
     },
     secrets: [], // Maps JS keys are always client-visible (restrict by HTTP referrer)
     env: () => ({ apiKey: process.env.GOOGLE_MAPS_API_KEY || '' }),
@@ -177,11 +177,11 @@ async function getPublicConfig() {
   ]);
   return {
     googleMapsApiKey: maps.apiKey || '',
-    defaultCity: maps.defaultCity || 'Kolkata',
-    defaultState: maps.defaultState || 'West Bengal',
-    defaultLat: maps.defaultLat != null && maps.defaultLat !== '' ? Number(maps.defaultLat) : 22.5726,
-    defaultLng: maps.defaultLng != null && maps.defaultLng !== '' ? Number(maps.defaultLng) : 88.3639,
-    defaultZoom: maps.defaultZoom != null && maps.defaultZoom !== '' ? Number(maps.defaultZoom) : 11,
+    defaultCity: maps.defaultCity || '',
+    defaultState: maps.defaultState || '',
+    defaultLat: maps.defaultLat != null && maps.defaultLat !== '' ? Number(maps.defaultLat) : 20.5937,
+    defaultLng: maps.defaultLng != null && maps.defaultLng !== '' ? Number(maps.defaultLng) : 78.9629,
+    defaultZoom: maps.defaultZoom != null && maps.defaultZoom !== '' ? Number(maps.defaultZoom) : 5,
     gaId: analytics.gaId || '',
     companyName: branding.companyName || 'Propszy',
     logoUrl: branding.logoUrl || '',

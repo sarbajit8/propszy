@@ -58,16 +58,21 @@ function LoadedMap({ apiKey, pins, center, zoom, height, single, activeId, onSel
     if (center && isNum(center.lat) && isNum(center.lng)) {
       return { lat: Number(center.lat), lng: Number(center.lng) };
     }
-    if (withCoords.length) return { lat: withCoords[0].lat, lng: withCoords[0].lng };
-    return { lat: 22.5726, lng: 88.3639 }; // West Bengal / Kolkata default
+    if (withCoords.length === 1) return { lat: withCoords[0].lat, lng: withCoords[0].lng };
+    return { lat: 20.5937, lng: 78.9629 }; // India geographic center
   }, [center, withCoords]);
+
+  const fitAllPins = (m) => {
+    const map = m || mapRef.current;
+    if (!map || single || withCoords.length < 2 || !window.google?.maps?.LatLngBounds) return;
+    const b = new window.google.maps.LatLngBounds();
+    withCoords.forEach((p) => b.extend({ lat: p.lat, lng: p.lng }));
+    map.fitBounds(b, 48);
+  };
 
   // fit bounds to all pins on first load / when the set changes
   useEffect(() => {
-    if (!mapRef.current || single || withCoords.length < 2) return;
-    const b = new window.google.maps.LatLngBounds();
-    withCoords.forEach((p) => b.extend({ lat: p.lat, lng: p.lng }));
-    mapRef.current.fitBounds(b, 64);
+    fitAllPins();
   }, [withCoords, single]);
 
   // auto resize when map is mounted or height changes
@@ -120,20 +125,23 @@ function LoadedMap({ apiKey, pins, center, zoom, height, single, activeId, onSel
   const pick = (p) => { setActive(p); onSelect?.(p); };
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200" style={{ height }}>
+    <div className="overflow-hidden rounded-xl border border-slate-200 w-full" style={{ height, minHeight: typeof height === 'number' ? height : 280 }}>
       <LocalErrorBoundary fallback={
-        <div className="grid place-items-center bg-slate-50 p-6 text-center text-sm text-slate-500" style={{ height }}>
+        <div className="grid place-items-center bg-slate-50 p-6 text-center text-sm text-slate-500" style={{ height, minHeight: typeof height === 'number' ? height : 280 }}>
           The map couldn’t be displayed right now.
         </div>
       }>
         <GoogleMap
           mapContainerStyle={containerStyle}
           center={resolvedCenter}
-          zoom={single ? 15 : zoom}
+          zoom={single ? 15 : (zoom || 5)}
           onLoad={(m) => {
             mapRef.current = m;
             if (window.google?.maps?.event) {
               window.google.maps.event.trigger(m, 'resize');
+            }
+            if (!single && withCoords.length >= 2) {
+              fitAllPins(m);
             }
           }}
           options={{
@@ -141,6 +149,7 @@ function LoadedMap({ apiKey, pins, center, zoom, height, single, activeId, onSel
             streetViewControl: false,
             fullscreenControl: true,
             clickableIcons: false,
+            gestureHandling: 'cooperative',
             styles: MAP_STYLES,
           }}
         >
@@ -196,10 +205,10 @@ export default function MapView({ pins = [], center, zoom, height = 420, single,
     if (cfg?.defaultLat && cfg?.defaultLng) {
       return { lat: Number(cfg.defaultLat), lng: Number(cfg.defaultLng) };
     }
-    return { lat: 22.5726, lng: 88.3639 }; // West Bengal / Kolkata
+    return { lat: 20.5937, lng: 78.9629 }; // India geographic center
   }, [center, cfg]);
 
-  const effectiveZoom = zoom || (cfg?.defaultZoom ? Number(cfg.defaultZoom) : 11);
+  const effectiveZoom = zoom || (cfg?.defaultZoom ? Number(cfg.defaultZoom) : 5);
 
   if (isLoading && !ENV_KEY) {
     return <div className="grid place-items-center rounded-xl border border-slate-200 bg-slate-50" style={{ height }}>Loading map…</div>;

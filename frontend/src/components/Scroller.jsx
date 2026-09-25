@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 
 // Horizontal snap-scroll row with prev/next controls. Children are the cards.
-export default function Scroller({ children, itemClass = 'w-[280px] sm:w-[320px]' }) {
+export default function Scroller({ children, itemClass = 'w-[260px] sm:w-[320px]' }) {
   const ref = useRef(null);
   const by = (dir) => ref.current?.scrollBy({ left: dir * (ref.current.clientWidth * 0.8), behavior: 'smooth' });
   const kids = Array.isArray(children) ? children : [children];
@@ -15,7 +15,7 @@ export default function Scroller({ children, itemClass = 'w-[280px] sm:w-[320px]
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" /></svg>
       </button>
-      <div ref={ref} className="flex snap-x gap-4 overflow-x-auto scroll-pl-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div ref={ref} className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 scroll-pl-4 pb-2 sm:mx-0 sm:gap-4 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {kids.map((child, i) => (
           <div key={i} className={`shrink-0 snap-start ${itemClass}`}>{child}</div>
         ))}

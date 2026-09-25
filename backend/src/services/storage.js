@@ -6,10 +6,21 @@ const { env } = require('../config/env');
 // Pluggable media storage. Local disk is implemented; S3 / Cloudinary are
 // stubbed so the rest of the app codes against one interface.
 
-const uploadRoot = path.resolve(process.cwd(), env.storage.uploadDir);
+const uploadRoot = path.isAbsolute(env.storage.uploadDir)
+  ? env.storage.uploadDir
+  : path.resolve(__dirname, '../../', env.storage.uploadDir);
 
 function ensureDir(dir) {
-  fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+try {
+  ensureDir(uploadRoot);
+} catch (err) {
+  // eslint-disable-next-line no-console
+  console.warn('[storage] Warning: could not ensure uploadRoot:', err.message);
 }
 
 function safeName(original) {
@@ -17,10 +28,23 @@ function safeName(original) {
   return `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`;
 }
 
+function resolvePublicBaseUrl(req) {
+  if (process.env.PUBLIC_BASE_URL) {
+    return process.env.PUBLIC_BASE_URL.replace(/\/+$/, '');
+  }
+  if (req && typeof req.get === 'function') {
+    const proto = req.get('x-forwarded-proto') || req.protocol || 'http';
+    const host = req.get('host');
+    if (host) return `${proto}://${host}`;
+  }
+  return (env.storage.publicBaseUrl || (env.isProd ? 'https://propszy.com' : 'http://localhost:5050')).replace(/\/+$/, '');
+}
+
 const localDriver = {
-  async save(file, folder = 'misc') {
+  async save(file, folder = 'misc', req = null) {
     const dir = path.join(uploadRoot, folder);
     ensureDir(dir);
+    const baseUrl = resolvePublicBaseUrl(req);
 
     // If file was already streamed to disk by diskStorage
     if (file.filename && file.path) {
@@ -34,21 +58,23 @@ const localDriver = {
           await fs.promises.unlink(file.path).catch(() => {});
         }
       }
-      const key = `${folder}/${filename}`;
+      const key = `${folder}/${filename}`.replace(/\\/g, '/');
       return {
-        url: `${env.storage.publicBaseUrl}/uploads/${key}`,
+        url: `${baseUrl}/uploads/${key}`,
         key,
         size: file.size,
       };
     }
 
-    const key = `${folder}/${safeName(file.originalname)}`;
+    const filename = safeName(file.originalname);
+    const key = `${folder}/${filename}`.replace(/\\/g, '/');
     const dest = path.join(uploadRoot, key);
+    ensureDir(path.dirname(dest));
     await fs.promises.writeFile(dest, file.buffer);
     return {
-      url: `${env.storage.publicBaseUrl}/uploads/${key}`,
+      url: `${baseUrl}/uploads/${key}`,
       key,
-      size: file.size,
+      size: file.size || (file.buffer ? file.buffer.length : 0),
     };
   },
   async remove(key) {
@@ -61,17 +87,19 @@ const localDriver = {
 const s3Driver = {
   async save(file, folder = 'misc') {
     const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
-    const { region, bucket, accessKeyId, secretAccessKey } = env.storage.s3;
-    if (!bucket || !region) {
-      throw new Error('S3 storage driver is missing AWS_S3_BUCKET or AWS_REGION in .env');
+    const region = env.storage.s3.region || process.env.AWS_DEFAULT_REGION || 'ap-south-1';
+    const bucket = env.storage.s3.bucket;
+    if (!bucket) {
+      throw new Error('S3 storage driver is missing AWS_S3_BUCKET in .env');
     }
     const clientConfig = { region };
+    const { accessKeyId, secretAccessKey } = env.storage.s3;
     if (accessKeyId && secretAccessKey) {
       clientConfig.credentials = { accessKeyId, secretAccessKey };
     }
     const s3 = new S3Client(clientConfig);
     const originalName = file.originalname || file.filename || 'file';
-    const key = `${folder}/${safeName(originalName)}`;
+    const key = `${folder}/${safeName(originalName)}`.replace(/\\/g, '/');
 
     let buffer;
     if (file.buffer) {
